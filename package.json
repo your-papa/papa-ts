@@ -1,0 +1,36 @@
+{
+  "name": "second-brain-ts",
+  "version": "0.1.0",
+  "description": "Backend for your Personal Assistant, powered by Private AI (aka PAPA)",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/Leo310/papa-backend-ts.git"
+  },
+  "keywords": [
+    "ai",
+    "second-brain",
+    "rag",
+    "obsidian"
+  ],
+  "author": "Leonard Heininger, Nicolas Kohl",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Leo310/papa-backend-ts/issues"
+  },
+  "homepage": "https://github.com/Leo310/papa-backend-ts#readme",
+  "devDependencies": {
+    "ts-node": "^10.9.1",
+    "tsup": "^7.2.0",
+    "typescript": "^5.2.2"
+  }
+}
