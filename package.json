@@ -1,36 +1,44 @@
 {
-  "name": "second-brain-ts",
-  "version": "0.1.0",
-  "description": "Backend for your Personal Assistant, powered by Private AI (aka PAPA)",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsup",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/Leo310/papa-backend-ts.git"
-  },
-  "keywords": [
-    "ai",
-    "second-brain",
-    "rag",
-    "obsidian"
-  ],
-  "author": "Leonard Heininger, Nicolas Kohl",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/Leo310/papa-backend-ts/issues"
-  },
-  "homepage": "https://github.com/Leo310/papa-backend-ts#readme",
-  "devDependencies": {
-    "ts-node": "^10.9.1",
-    "tsup": "^7.2.0",
-    "typescript": "^5.2.2"
-  }
+    "name": "second-brain-ts",
+    "version": "0.1.1",
+    "description": "Backend for your Personal Assistant, powered by Private AI (aka PAPA)",
+    "main": "dist/index",
+    "types": "dist/index",
+    "type": "module",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "build:watch": "tsup --watch",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+ssh://git@github.com/Leo310/papa-backend-ts.git"
+    },
+    "keywords": [
+        "ai",
+        "second-brain",
+        "rag",
+        "obsidian"
+    ],
+    "author": "Leonard Heininger, Nicolas Kohl",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/Leo310/papa-backend-ts/issues"
+    },
+    "homepage": "https://github.com/Leo310/papa-backend-ts#readme",
+    "devDependencies": {
+        "@types/node": "^20.8.7",
+        "ts-node": "^10.9.1",
+        "tsup": "^7.2.0",
+        "typescript": "^5.2.2"
+    },
+    "dependencies": {
+        "@orama/orama": "^2.0.0-beta.6",
+        "dotenv": "^16.3.1",
+        "graphql": "^16.8.1",
+        "langchain": "^0.0.170"
+    }
 }
