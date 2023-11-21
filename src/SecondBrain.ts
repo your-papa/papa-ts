@@ -15,13 +15,13 @@ export class SecondBrain {
     private ragChain: RunnableSequence;
     private retriever: VectorStoreRetriever;
 
-    constructor() {
-        this.vectorStore = new OramaStore(new OpenAIEmbeddings({ openAIApiKey: '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' }), {
+    constructor(openAIApiKey: string) {
+        this.vectorStore = new OramaStore(new OpenAIEmbeddings({ openAIApiKey }), {
             indexName: 'obsidiandb',
         });
         this.retriever = this.vectorStore.asRetriever({ k: 2 });
 
-        const model = new OpenAIChat({ openAIApiKey: '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' });
+        const model = new OpenAIChat({ openAIApiKey });
         const prompt = PromptTemplate.fromTemplate(`Answer the question based only on the following context:
         {context}
 
