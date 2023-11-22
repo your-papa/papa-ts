@@ -10,26 +10,26 @@ import { Serialized } from 'langchain/load/serializable';
 import { LLMResult } from 'langchain/schema';
 
 export class SecondBrain {
-    private documents: Document[] = [];
     private vectorStore: OramaStore;
     private ragChain: RunnableSequence;
     private retriever: VectorStoreRetriever;
 
     constructor(openAIApiKey: string) {
-        this.vectorStore = new OramaStore(new OpenAIEmbeddings({ openAIApiKey }), {
+        this.vectorStore = new OramaStore(new OpenAIEmbeddings({ openAIApiKey, batchSize: 2048 }), {
             indexName: 'obsidiandb',
         });
-        this.retriever = this.vectorStore.asRetriever({ k: 2 });
+        this.retriever = this.vectorStore.asRetriever({ k: 7 });
 
         const model = new OpenAIChat({ openAIApiKey });
-        const prompt = PromptTemplate.fromTemplate(`Answer the question based only on the following context:
+        const prompt =
+            PromptTemplate.fromTemplate(`Antworte als mein Assistent auf meine Frage ausschließlich basierend auf meinem Wissen im folgenden Markdown formatierten Kontext. Bitte erstelle links im folgenden format [[Notename#Header1##Header2]] aus den Note Headern und füge sie deiner Antwort als Referenz bei:
         {context}
 
-        Question: {question}`);
+        Frage: {question}`);
 
         this.ragChain = RunnableSequence.from([
             {
-                context: this.retriever.pipe((documents: Document[], separator = '\n\n'): string => documents.map((doc) => doc.pageContent).join(separator)),
+                context: this.retriever.pipe((documents: Document[]): string => documents.map((doc) => doc.pageContent).join('\n\n')),
                 question: new RunnablePassthrough(),
             },
             prompt,
@@ -38,21 +38,17 @@ export class SecondBrain {
         ]);
     }
 
-    loadDocument(metadata: Record<string, any>, pageContent: string) {
-        this.documents.push(new Document({ metadata, pageContent }));
-    }
-
-    async embedDocuments() {
-        if (!this.documents.length) {
-            throw new Error('No documents loaded');
-        }
+    async embedDocuments(documents: Document[]) {
+        console.log('Embedding documents...');
         if (!this.vectorStore) {
             throw new Error('Vector store not initialized');
         }
-        await this.vectorStore.addDocuments(this.documents);
+        await this.vectorStore.addDocuments(documents);
+        console.log('Done embedding documents');
     }
 
     async runRAG(query: string) {
+        console.log('Running RAG...');
         if (!this.ragChain) {
             throw new Error('RAG chain not initialized');
         }
@@ -63,7 +59,6 @@ export class SecondBrain {
                         console.log(JSON.stringify(documents, null, 2));
                     },
                     handleLLMStart: async (llm: Serialized, prompts: string[]) => {
-                        console.log(JSON.stringify(llm, null, 2));
                         console.log(JSON.stringify(prompts, null, 2));
                     },
                     handleLLMEnd: async (output: LLMResult) => {

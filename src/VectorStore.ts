@@ -22,7 +22,7 @@ export class OramaStore extends VectorStore {
         this.db = create({
             schema: {
                 metadata: {
-                    text: 'string',
+                    initialPageContent: 'string',
                 },
                 embedding: 'vector[1536]',
             },
@@ -33,7 +33,7 @@ export class OramaStore extends VectorStore {
     async addVectors(vectors: number[][], documents: Document[]) {
         const docs = documents.map((document, index) => ({
             metadata: {
-                text: document.pageContent,
+                initialPageContent: document.pageContent,
             },
             embedding: vectors[index],
         }));
@@ -52,9 +52,9 @@ export class OramaStore extends VectorStore {
     }
 
     async similaritySearchVectorWithScore(query: number[], k: number): Promise<[Document, number][]> {
-        const results = await searchVector(await this.db, { vector: query, property: 'embedding', limit: k, similarity: 0.0 });
+        const results = await searchVector(await this.db, { vector: query, property: 'embedding', limit: k, similarity: 0.3 });
         return results.hits.map((result) => {
-            return [new Document({ pageContent: result.document.metadata.text }), result.score];
+            return [new Document({ pageContent: result.document.metadata.initialPageContent }), result.score];
         });
     }
 }
