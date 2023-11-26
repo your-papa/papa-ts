@@ -174,6 +174,11 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
+"@msgpack/msgpack@^2.7.2":
+  version "2.8.0"
+  resolved "https://registry.yarnpkg.com/@msgpack/msgpack/-/msgpack-2.8.0.tgz#4210deb771ee3912964f14a15ddfb5ff877e70b9"
+  integrity sha512-h9u4u/jiIRKbq25PM+zymTyW6bhTzELvOoUd+AvYriWOAKpLGnIamaET3pnHYoI5iYphAHBI4ayx0MehR+VVPQ==
+
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
   resolved "https://registry.npmjs.org/@nodelib/fs.scandir/-/fs.scandir-2.1.5.tgz"
@@ -195,10 +200,19 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@orama/orama@^2.0.0-beta.6":
-  version "2.0.0-beta.6"
-  resolved "https://registry.yarnpkg.com/@orama/orama/-/orama-2.0.0-beta.6.tgz#8e81bc87985adc3aa8b7b275d00f32fbce4fa233"
-  integrity sha512-jYzUdIT9Hq3/sUop0eTK1IFOGw0C6LcsA2z9WzjR/u1PTKCRyOmS2FDxMlvv1OHBq9JAerLBxd0aziTXc6JyRg==
+"@orama/orama@2.0.0-beta.7", "@orama/orama@^2.0.0-beta.7":
+  version "2.0.0-beta.7"
+  resolved "https://registry.yarnpkg.com/@orama/orama/-/orama-2.0.0-beta.7.tgz#8d398517fc0a5b0f8af1d8346b3af72fae4e24f9"
+  integrity sha512-7JlCMVoqJ2QBZtJ7H1shYbiVnaJJf5M/LI/H+b/YUyop0wnYTNfi6bRHuGhEMqh8ACXkHPNs0IHkyCKz+mFIXg==
+
+"@orama/plugin-data-persistence@^2.0.0-beta.7":
+  version "2.0.0-beta.7"
+  resolved "https://registry.yarnpkg.com/@orama/plugin-data-persistence/-/plugin-data-persistence-2.0.0-beta.7.tgz#20effdf872b6901c0d51c640a9b420022e61a832"
+  integrity sha512-3Mv5CtaM0g6+KNEQc0hVhLwXwYKUfxpTAeA/k/Y4UBk2ug1ajgTj1fhAObspOzy5jMdBMUmQL3tujv9clYfjvQ==
+  dependencies:
+    "@msgpack/msgpack" "^2.7.2"
+    "@orama/orama" "2.0.0-beta.7"
+    dpack "^0.6.22"
 
 "@tsconfig/node10@^1.0.7":
   version "1.0.9"
@@ -490,6 +504,11 @@ dotenv@^16.3.1:
   version "16.3.1"
   resolved "https://registry.npmjs.org/dotenv/-/dotenv-16.3.1.tgz"
   integrity sha512-IPzF4w4/Rd94bA9imS68tZBaYyBWSCE47V1RGuMrB94iyTOIEwRmVL2x/4An+6mETpLrKJ5hQkB8W4kFAadeIQ==
+
+dpack@^0.6.22:
+  version "0.6.22"
+  resolved "https://registry.yarnpkg.com/dpack/-/dpack-0.6.22.tgz#e1c863e0145d6670d92380db1dfa93a4cf97d252"
+  integrity sha512-WGPNlW2OAE7Bj0eODMpAHUcEqxrlg01e9OFZDxQodminIgC194/cRHT7K04Z1j7AUEWTeeplYGrIv/xRdwU9Hg==
 
 esbuild@^0.18.2:
   version "0.18.20"

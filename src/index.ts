@@ -1,4 +1,4 @@
-import { SecondBrain } from './SecondBrain';
+import { SecondBrain, SecondBrainData } from './SecondBrain';
 import { obsidianDocumentLoader } from './ObsidianDocumentLoader';
 
-export { SecondBrain, obsidianDocumentLoader };
+export { SecondBrain, SecondBrainData, obsidianDocumentLoader };

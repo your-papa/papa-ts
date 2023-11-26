@@ -1,4 +1,5 @@
-import { create, insertMultiple, searchVector } from '@orama/orama';
+import { Results, Orama, TypedDocument, create, insertMultiple, searchVector, AnyOrama } from '@orama/orama';
+import { persist, restore } from '@orama/plugin-data-persistence';
 import { Embeddings } from 'langchain/embeddings/base';
 import { VectorStore } from 'langchain/vectorstores/base';
 import { Document } from 'langchain/document';
@@ -7,8 +8,17 @@ export interface OramaLibArgs {
     indexName: string;
 }
 
+const vectorStoreSchema = {
+    metadata: {
+        initialPageContent: 'string',
+    },
+    embedding: 'vector[1536]',
+} as const;
+
+type VectorDocument = TypedDocument<Orama<typeof vectorStoreSchema>>;
+
 export class OramaStore extends VectorStore {
-    public db: any;
+    private db: Promise<AnyOrama>;
 
     _vectorstoreType(): string {
         return 'OramaStore';
@@ -20,12 +30,7 @@ export class OramaStore extends VectorStore {
     ) {
         super(embeddings, args);
         this.db = create({
-            schema: {
-                metadata: {
-                    initialPageContent: 'string',
-                },
-                embedding: 'vector[1536]',
-            },
+            schema: vectorStoreSchema,
             id: args.indexName,
         });
     }
@@ -52,9 +57,17 @@ export class OramaStore extends VectorStore {
     }
 
     async similaritySearchVectorWithScore(query: number[], k: number): Promise<[Document, number][]> {
-        const results = await searchVector(await this.db, { vector: query, property: 'embedding', limit: k, similarity: 0.3 });
+        const results: Results<VectorDocument> = await searchVector(await this.db, { vector: query, property: 'embedding', limit: k, similarity: 0.3 });
         return results.hits.map((result) => {
             return [new Document({ pageContent: result.document.metadata.initialPageContent }), result.score];
         });
+    }
+
+    async getJson(): Promise<string> {
+        return (await persist(await this.db, 'json')) as string;
+    }
+
+    async loadFromJson(vectorStoreJson: string) {
+        this.db = restore('json', vectorStoreJson);
     }
 }
