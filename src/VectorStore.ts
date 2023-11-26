@@ -18,7 +18,7 @@ const vectorStoreSchema = {
 type VectorDocument = TypedDocument<Orama<typeof vectorStoreSchema>>;
 
 export class OramaStore extends VectorStore {
-    private db: Promise<AnyOrama>;
+    private db: Promise<Orama<typeof vectorStoreSchema>>;
 
     _vectorstoreType(): string {
         return 'OramaStore';
@@ -47,7 +47,7 @@ export class OramaStore extends VectorStore {
     }
 
     async addDocuments(documents: Document[]) {
-        this.addVectors(await this.embeddings.embedDocuments(documents.map((document) => document.pageContent)), documents);
+        await this.addVectors(await this.embeddings.embedDocuments(documents.map((document) => document.pageContent)), documents);
     }
 
     static async fromDocuments(documents: Document[], embeddings: Embeddings, args: OramaLibArgs) {
