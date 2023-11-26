@@ -1,13 +1,17 @@
-import { App } from 'obsidian';
+import { App, TFile } from 'obsidian';
 import { Document } from 'langchain/document';
 
-export async function obsidianDocumentLoader(obsidianApp: App): Promise<Document[]> {
+export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): Promise<Document[]> {
     let docs: Document[] = [];
-    for (const file of obsidianApp.vault.getMarkdownFiles()) {
+    for (const file of files) {
         const fileMetadata = obsidianApp.metadataCache.getFileCache(file);
         if (!fileMetadata) continue;
+        // TODO respect filepath
         docs.push({
-            metadata: {},
+            metadata: {
+                id: file.basename + ' metadata',
+                filename: file.basename,
+            },
             pageContent:
                 'Note: ' +
                 file.basename +
@@ -21,6 +25,7 @@ export async function obsidianDocumentLoader(obsidianApp: App): Promise<Document
 
         const pageContent = await obsidianApp.vault.cachedRead(file);
         let headerCount = 0;
+        let noteCount = 0;
         let headingTree = [];
         headingTree.push(file.basename);
         let currentHeadingLevel = 0;
@@ -39,14 +44,21 @@ export async function obsidianDocumentLoader(obsidianApp: App): Promise<Document
                     headingTree.pop();
                     headingTree.push(pageContent.slice(currentHeading.position.start.offset, currentHeading.position.end.offset));
                 }
+                noteCount = 0;
                 headerCount++;
-            } else
+            } else {
                 docs.push({
-                    metadata: {},
+                    metadata: {
+                        id: headingTree.join('') + ' ID' + noteCount,
+                        filename: file.basename,
+                    },
                     pageContent: 'Notename: ' + headingTree.join('\n') + '\n' + pageContent.slice(section.position.start.offset, section.position.end.offset),
                 });
+                noteCount++;
+            }
         }
     }
+    console.log('Loaded ' + docs.length + ' documents from Obsidian', docs);
 
     return docs;
 }

@@ -28,13 +28,12 @@ export class SecondBrain {
         });
         if (data.vectorStoreJson) {
             this.vectorStore.loadFromJson(data.vectorStoreJson);
-            console.log('Loaded vector store from JSON');
         }
         this.retriever = this.vectorStore.asRetriever({ k: 7 });
 
         const model = new OpenAIChat({ openAIApiKey: data.openAIApiKey });
         const prompt =
-            PromptTemplate.fromTemplate(`Antworte als mein Assistent auf meine Frage ausschließlich basierend auf meinem Wissen im folgenden Markdown formatierten Kontext. Bitte erstelle links im folgenden format [[Notename#Header1##Header2]] aus den Note Headern und füge sie deiner Antwort als Referenz bei:
+            PromptTemplate.fromTemplate(`Antworte als mein Assistent auf meine Frage ausschließlich basierend auf meinem Wissen im folgenden Markdown formatierten Kontext. Bitte erstelle links im folgenden format [[<Notename>#<Header1>##<Header2>###...]] aus den Note Headern und füge sie deiner Antwort als Referenz bei:
         {context}
 
         Frage: {question}`);
@@ -54,6 +53,10 @@ export class SecondBrain {
         console.log('Embedding documents...');
         await this.vectorStore.addDocuments(documents);
         console.log('Done embedding documents');
+    }
+
+    async removeDocuments(documents: Document[]) {
+        await this.vectorStore.removeDocuments(documents);
     }
 
     async runRAG(query: string) {
