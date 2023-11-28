@@ -29,7 +29,7 @@ export class SecondBrain {
         if (data.vectorStoreJson) {
             this.vectorStore.loadFromJson(data.vectorStoreJson);
         }
-        this.retriever = this.vectorStore.asRetriever({ k: 7 });
+        this.retriever = this.vectorStore.asRetriever({ k: 30 });
 
         const model = new OpenAIChat({ openAIApiKey: data.openAIApiKey });
         const prompt =

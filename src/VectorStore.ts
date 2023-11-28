@@ -36,12 +36,12 @@ export class OramaStore extends VectorStore {
     }
 
     async removeDocuments(documents: Document[]) {
-        console.log('Removing documents', documents);
+        // console.log('Removing documents', documents);
         const ids = await removeMultiple(
             await this.db,
             documents.map((document) => document.metadata.id)
         );
-        console.log('Removed documents with ids', ids);
+        // console.log('Removed documents with ids', ids);
     }
 
     async addVectors(vectors: number[][], documents: Document[]) {
@@ -50,7 +50,7 @@ export class OramaStore extends VectorStore {
         for (const filename of filenamesToUpdate) {
             // TODO: remove limit?
             const vectorsToUpdate = await search(await this.db, { properties: ['filename'], term: filename, exact: true, limit: 10000 });
-            console.log('Removed documents', vectorsToUpdate, 'for filename', filename);
+            // console.log('Removed documents', vectorsToUpdate, 'for filename', filename);
             await removeMultiple(
                 await this.db,
                 vectorsToUpdate.hits.map((hit) => hit.document.id)
@@ -64,7 +64,7 @@ export class OramaStore extends VectorStore {
         }));
 
         const ids = await insertMultiple(await this.db, docs);
-        console.log('Inserted documents with ids', ids);
+        // console.log('Inserted documents with ids', ids);
         return ids;
     }
 
@@ -80,7 +80,7 @@ export class OramaStore extends VectorStore {
     }
 
     async similaritySearchVectorWithScore(query: number[], k: number): Promise<[Document, number][]> {
-        const results: Results<VectorDocument> = await searchVector(await this.db, { vector: query, property: 'embedding', limit: k, similarity: 0.3 });
+        const results: Results<VectorDocument> = await searchVector(await this.db, { vector: query, property: 'embedding', limit: k, similarity: 0.4 });
         return results.hits.map((result) => {
             return [new Document({ pageContent: result.document.content }), result.score];
         });
