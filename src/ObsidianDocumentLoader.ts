@@ -23,9 +23,10 @@ export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): 
                 JSON.stringify(fileMetadata.frontmatter || {}),
         });
 
+        // TODO check for edge cases for example if # is used and directly afterwards ###
         const pageContent = await obsidianApp.vault.cachedRead(file);
         let headerCount = 0;
-        let noteCount = 0;
+        let docCount = 0;
         let headingTree = [];
         headingTree.push(file.basename);
         let currentHeadingLevel = 0;
@@ -44,17 +45,16 @@ export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): 
                     headingTree.pop();
                     headingTree.push(pageContent.slice(currentHeading.position.start.offset, currentHeading.position.end.offset));
                 }
-                noteCount = 0;
                 headerCount++;
             } else {
                 docs.push({
                     metadata: {
-                        id: headingTree.join('') + ' ID' + noteCount,
+                        id: headingTree.join('') + ' ID' + docCount,
                         filename: file.basename,
                     },
                     pageContent: 'Notename: ' + headingTree.join('\n') + '\n' + pageContent.slice(section.position.start.offset, section.position.end.offset),
                 });
-                noteCount++;
+                docCount++;
             }
         }
     }
