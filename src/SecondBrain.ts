@@ -33,14 +33,49 @@ export class SecondBrain {
 
         const model = new OpenAIChat({ openAIApiKey: data.openAIApiKey });
         const prompt =
-            PromptTemplate.fromTemplate(`Antworte als mein Assistent auf meine Frage ausschließlich basierend auf meinem Wissen im folgenden Markdown formatierten Kontext. Bitte erstelle links im folgenden format [[<Notename>#<Header1>##<Header2>###...]] aus den Note Headern und füge sie deiner Antwort als Referenz bei:
-        {context}
+            PromptTemplate.fromTemplate(`Antworte als mein Assistent auf meine Frage ausschließlich basierend auf meinem Wissen im folgenden Markdown formatierten Kontext. Bitte erstelle links im folgenden format [[<Notename>#<Header1>##<Header2>###...]] aus den Note Headern und füge sie deiner Antwort als Referenz bei:{context}
 
-        Frage: {question}`);
+------
+Frage: {question}`);
 
         this.ragChain = RunnableSequence.from([
             {
-                context: this.retriever.pipe((documents: Document[]): string => documents.map((doc) => doc.pageContent).join('\n\n')),
+                context: this.retriever.pipe((documents: Document[]): string => {
+                    // group documents by filename
+                    const documentsByFilename: Record<string, Document[]> = {};
+                    for (const document of documents) {
+                        if (!documentsByFilename[document.metadata.filename]) {
+                            documentsByFilename[document.metadata.filename] = [];
+                        }
+                        documentsByFilename[document.metadata.filename].push(document);
+                    }
+                    let context = '';
+                    for (const filename in documentsByFilename) {
+                        // reorder documents by order
+                        documentsByFilename[filename].sort((a, b) => a.metadata.order - b.metadata.order);
+                        context += '\n\n------\n';
+                        context += 'Note Name:' + filename + '\n';
+                        let lastHeader: string[] = [''];
+
+                        context += documentsByFilename[filename]
+                            .map((document) => {
+                                // if (document.metadata.header !== currentHeader) {
+                                //     currentHeader = document.metadata.header;
+                                //     return currentHeader + '\n' + document.pageContent;
+                                // }
+                                let header = '';
+                                for (let i = 0; i < document.metadata.header.length; i++) {
+                                    if (document.metadata.header[i] !== lastHeader[i]) {
+                                        header += document.metadata.header[i] + '\n';
+                                    }
+                                }
+                                lastHeader = document.metadata.header;
+                                return header + document.pageContent;
+                            })
+                            .join('\n\n');
+                    }
+                    return context;
+                }),
                 question: new RunnablePassthrough(),
             },
             prompt,
@@ -65,13 +100,13 @@ export class SecondBrain {
             callbacks: [
                 {
                     handleRetrieverEnd: async (documents: Document[]) => {
-                        console.log(JSON.stringify(documents, null, 2));
+                        console.log(documents);
                     },
                     handleLLMStart: async (llm: Serialized, prompts: string[]) => {
-                        console.log(JSON.stringify(prompts, null, 2));
+                        console.log(prompts[0]);
                     },
                     handleLLMEnd: async (output: LLMResult) => {
-                        console.log(JSON.stringify(output, null, 2));
+                        console.log(output);
                     },
                     handleLLMError: async (err: Error) => {
                         console.error(err);

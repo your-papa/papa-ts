@@ -11,6 +11,8 @@ export interface OramaLibArgs {
 const vectorStoreSchema = {
     id: 'string',
     filename: 'string',
+    order: 'number',
+    header: 'string[]',
     content: 'string',
     embedding: 'vector[1536]',
 } as const;
@@ -45,8 +47,7 @@ export class OramaStore extends VectorStore {
     }
 
     async addVectors(vectors: number[][], documents: Document[]) {
-        const filenames = documents.map((document) => document.metadata.filename);
-        const filenamesToUpdate = filenames.filter((value, index, array) => array.indexOf(value) === index);
+        const filenamesToUpdate = documents.map((document) => document.metadata.filename).filter((value, index, array) => array.indexOf(value) === index);
         for (const filename of filenamesToUpdate) {
             // TODO: remove limit?
             const vectorsToUpdate = await search(await this.db, { properties: ['filename'], term: filename, exact: true, limit: 10000 });
@@ -56,10 +57,12 @@ export class OramaStore extends VectorStore {
                 vectorsToUpdate.hits.map((hit) => hit.document.id)
             );
         }
-        const docs = documents.map((document, index) => ({
+        const docs: VectorDocument[] = documents.map((document, index) => ({
             id: document.metadata.id,
             filename: document.metadata.filename,
-            content: document.pageContent,
+            content: document.metadata.content,
+            header: document.metadata.header,
+            order: document.metadata.order,
             embedding: vectors[index],
         }));
 
@@ -82,7 +85,13 @@ export class OramaStore extends VectorStore {
     async similaritySearchVectorWithScore(query: number[], k: number): Promise<[Document, number][]> {
         const results: Results<VectorDocument> = await searchVector(await this.db, { vector: query, property: 'embedding', limit: k, similarity: 0.4 });
         return results.hits.map((result) => {
-            return [new Document({ pageContent: result.document.content }), result.score];
+            return [
+                new Document({
+                    metadata: { filename: result.document.filename, order: result.document.order, header: result.document.header },
+                    pageContent: result.document.content,
+                }),
+                result.score,
+            ];
         });
     }
 
