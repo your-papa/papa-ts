@@ -49,8 +49,13 @@ export class SecondBrain {
 
         this.ragChain = RunnableSequence.from([
             {
-                context: this.retriever.pipe(SecondBrain.docsPostProcessor),
-                question: input.query},
+                question: (input: { query: string; chatHistory: string }) => input.query,
+                chatHistory: (input: { query: string; chatHistory: string }) => input.chatHistory,
+                context: async (input: { query: string; chatHistory?: string }) => {
+                    const relevantDocs = await this.retriever.getRelevantDocuments(input.query);
+                    const processedDocs = SecondBrain.docsPostProcessor(relevantDocs);
+                    return processedDocs || '';
+                },
             },
             prompt,
             model,
