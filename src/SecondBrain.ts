@@ -39,22 +39,22 @@ export class SecondBrain {
         const model = new OpenAIChat({ openAIApiKey: data.openAIApiKey });
         const prompt = PromptTemplate.fromTemplate(
             `Antworte als mein Assistent auf meine Frage ausschließlich basierend auf meinem Wissen im folgenden Markdown formatierten Kontext. Bitte erstelle links im folgenden format [[<Notename>#<Header1>##<Header2>###...]] aus den Note Headern und füge sie deiner Antwort als Referenz bei:
-                ------
-                Kontext: {context}
-                ------
-                Chat History: {chatHistory}
-                ------
-                Frage: {question}`
+------------
+Kontext: {context}
+------------
+Chat History: {chatHistory}
+------------
+Frage: {question}`
         );
 
         this.ragChain = RunnableSequence.from([
             {
                 question: (input: { query: string; chatHistory: string }) => input.query,
                 chatHistory: (input: { query: string; chatHistory: string }) => input.chatHistory,
-                context: async (input: { query: string; chatHistory?: string }) => {
+                context: async (input: { query: string; chatHistory: string }) => {
                     const relevantDocs = await this.retriever.getRelevantDocuments(input.query);
                     const processedDocs = SecondBrain.docsPostProcessor(relevantDocs);
-                    return processedDocs || '';
+                    return processedDocs;
                 },
             },
             prompt,
@@ -75,7 +75,8 @@ export class SecondBrain {
 
     async runRAG(input: input) {
         console.log('Running RAG...');
-        const result = this.ragChain.invoke(input.query, {
+        console.log(input);
+        const result = this.ragChain.invoke(input, {
             callbacks: [
                 {
                     handleRetrieverEnd: async (documents: Document[]) => {
