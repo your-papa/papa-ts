@@ -30,15 +30,13 @@ export class SecondBrain {
         }
         this.vectorStore = new OramaStore(new OpenAIEmbeddings({ openAIApiKey: data.openAIApiKey, batchSize: 2048 }), {
             indexName: 'obsidiandb',
+            backupVectorStoreJson: data.vectorStoreJson,
         });
-        if (data.vectorStoreJson) {
-            this.vectorStore.loadFromJson(data.vectorStoreJson);
-        }
         this.retriever = this.vectorStore.asRetriever({ k: 30 });
 
         const model = new OpenAIChat({ openAIApiKey: data.openAIApiKey });
         const prompt = PromptTemplate.fromTemplate(
-            `Antworte als mein Assistent auf meine Frage ausschließlich basierend auf meinem Wissen im folgenden Markdown formatierten Kontext. Bitte erstelle links im folgenden format [[<Notename>#<Header1>##<Header2>###...]] aus den Note Headern und füge sie deiner Antwort als Referenz bei:
+            `Antworte als mein Assistent auf meine Frage ausschließlich basierend auf meinem Wissen im folgenden Kontext. Bitte erstelle links im folgenden format [[<Notename>#<Header1>##<Header2>###...]] aus den Note Headern und füge sie deiner Antwort als Referenz bei:
 ------------
 Kontext: {context}
 ------------
@@ -73,24 +71,24 @@ Frage: {question}`
         await this.vectorStore.removeDocuments(documents);
     }
 
-    async runRAG(input: input) {
+    async runRAG(input: input): Promise<string> {
         console.log('Running RAG...');
         console.log(input);
         const result = this.ragChain.invoke(input, {
             callbacks: [
                 {
-                    handleRetrieverEnd: async (documents: Document[]) => {
-                        console.log(documents);
-                    },
-                    handleLLMStart: async (llm: Serialized, prompts: string[]) => {
-                        console.log(prompts[0]);
-                    },
-                    handleLLMEnd: async (output: LLMResult) => {
-                        console.log(output);
-                    },
-                    handleLLMError: async (err: Error) => {
-                        console.error(err);
-                    },
+                    // handleRetrieverEnd: async (documents: Document[]) => {
+                    //     console.log(documents);
+                    // },
+                    // handleLLMStart: async (llm: Serialized, prompts: string[]) => {
+                    //     console.log(prompts[0]);
+                    // },
+                    // handleLLMEnd: async (output: LLMResult) => {
+                    //     console.log(output);
+                    // },
+                    // handleLLMError: async (err: Error) => {
+                    //     console.error(err);
+                    // },
                 },
             ],
         });
@@ -105,7 +103,7 @@ Frage: {question}`
         return await this.vectorStore.getJson();
     }
 
-    static async loadFromData(data: SecondBrainData): Promise<SecondBrain> {
+    static loadFromData(data: SecondBrainData): SecondBrain {
         return new this(data);
     }
 
