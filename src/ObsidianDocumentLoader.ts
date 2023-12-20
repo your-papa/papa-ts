@@ -16,19 +16,18 @@ export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): 
         let foundFrontmatter = false;
         for (const section of fileMetadata.sections || []) {
             if (section.type === 'yaml' && !foundFrontmatter) {
-                // TODO respect filepath
                 docs.push({
                     metadata: {
-                        id: file.basename + ' metadata',
-                        filename: file.basename,
+                        id: file.path + ' metadata',
+                        filepath: file.path,
                         order: 0,
                         header: [],
                         // content: 'Datei Erstellt am: ' + new Date(file.stat.ctime) + '\n' + 'Metadaten: ' + JSON.stringify(fileMetadata.frontmatter || {}),
                         content: 'Metadaten:\n' + pageContent.slice(section.position.start.offset, section.position.end.offset),
                     },
                     pageContent:
-                        'Note Name: ' +
-                        file.basename +
+                        'Note Path: ' +
+                        file.path +
                         '\n' +
                         // 'Datei erstellt am: ' +
                         // new Date(file.stat.ctime) +
@@ -56,18 +55,17 @@ export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): 
             } else if (section.type === 'thematicBreak') {
                 continue;
             } else {
-                // TODO respect filepath
                 docs.push({
                     metadata: {
-                        id: file.basename + headingTree.join('') + ' ID' + docCount,
-                        filename: file.basename,
+                        id: file.path + headingTree.join('') + ' ID' + docCount,
+                        filepath: file.path,
                         order: docCount,
                         header: [...headingTree],
                         content: pageContent.slice(section.position.start.offset, section.position.end.offset),
                     },
                     pageContent:
-                        'Note Name: ' +
-                        file.basename +
+                        'Note Path: ' +
+                        file.path +
                         '\n' +
                         headingTree.join('\n') +
                         '\n' +

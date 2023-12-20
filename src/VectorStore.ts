@@ -11,7 +11,7 @@ export interface OramaLibArgs {
 
 const vectorStoreSchema = {
     id: 'string',
-    filename: 'string',
+    filepath: 'string',
     order: 'number',
     header: 'string[]',
     content: 'string',
@@ -57,11 +57,11 @@ export class OramaStore extends VectorStore {
     }
 
     async addVectors(vectors: number[][], documents: Document[]) {
-        const filenamesToUpdate = documents.map((document) => document.metadata.filename).filter((value, index, array) => array.indexOf(value) === index);
-        for (const filename of filenamesToUpdate) {
+        const filepathsToUpdate = documents.map((document) => document.metadata.filepath).filter((value, index, array) => array.indexOf(value) === index);
+        for (const filepath of filepathsToUpdate) {
             // TODO: remove limit?
-            const vectorsToUpdate = await search(await this.db, { properties: ['filename'], term: filename, exact: true, limit: 10000 });
-            // console.log('Removed documents', vectorsToUpdate, 'for filename', filename);
+            const vectorsToUpdate = await search(await this.db, { properties: ['filepath'], term: filepath, exact: true, limit: 10000 });
+            // console.log('Removed documents', vectorsToUpdate, 'for filepath', filepath);
             await removeMultiple(
                 await this.db,
                 vectorsToUpdate.hits.map((hit) => hit.document.id)
@@ -69,7 +69,7 @@ export class OramaStore extends VectorStore {
         }
         const docs: VectorDocument[] = documents.map((document, index) => ({
             id: document.metadata.id,
-            filename: document.metadata.filename,
+            filepath: document.metadata.filepath,
             content: document.metadata.content,
             header: document.metadata.header,
             order: document.metadata.order,
@@ -97,7 +97,7 @@ export class OramaStore extends VectorStore {
         return results.hits.map((result) => {
             return [
                 new Document({
-                    metadata: { filename: result.document.filename, order: result.document.order, header: result.document.header },
+                    metadata: { filepath: result.document.filepath, order: result.document.order, header: result.document.header },
                     pageContent: result.document.content,
                 }),
                 result.score,

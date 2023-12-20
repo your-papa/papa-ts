@@ -57,10 +57,10 @@ Frage: {question}`
 
         const ragChain = RunnableSequence.from([
             {
-                question: (input: { isRAG: boolean; query: string; chatHistory: string }) => input.query,
-                chatHistory: (input: { isRAG: boolean; query: string; chatHistory: string }) => input.chatHistory,
-                context: async (input: { isRAG: boolean; query: string; chatHistory: string }) => {
-                    const relevantDocs = await this.retriever.getRelevantDocuments(input.query);
+                question: (input: chainInput) => input.userQuery,
+                chatHistory: (input: chainInput) => input.chatHistory,
+                context: async (input: chainInput) => {
+                    const relevantDocs = await this.retriever.getRelevantDocuments(input.userQuery);
                     const processedDocs = SecondBrain.docsPostProcessor(relevantDocs);
                     return processedDocs;
                 },
@@ -72,8 +72,8 @@ Frage: {question}`
 
         const conversationChain = RunnableSequence.from([
             {
-                question: (input: { isRAG: boolean; query: string; chatHistory: string }) => input.query,
-                chatHistory: (input: { isRAG: boolean; query: string; chatHistory: string }) => input.chatHistory,
+                question: (input: chainInput) => input.userQuery,
+                chatHistory: (input: chainInput) => input.chatHistory,
             },
             conversationPrompt,
             model,
@@ -130,23 +130,23 @@ Frage: {question}`
     }
 
     private static docsPostProcessor(documents: Document[]): string {
-        // group documents by filename
-        const documentsByFilename: Record<string, Document[]> = {};
+        // group documents by filepath
+        const documentsByFilepath: Record<string, Document[]> = {};
         for (const document of documents) {
-            if (!documentsByFilename[document.metadata.filename]) {
-                documentsByFilename[document.metadata.filename] = [];
+            if (!documentsByFilepath[document.metadata.filepath]) {
+                documentsByFilepath[document.metadata.filepath] = [];
             }
-            documentsByFilename[document.metadata.filename].push(document);
+            documentsByFilepath[document.metadata.filepath].push(document);
         }
         let context = '';
-        for (const filename in documentsByFilename) {
+        for (const filepath in documentsByFilepath) {
             // reorder documents by order
-            documentsByFilename[filename].sort((a, b) => a.metadata.order - b.metadata.order);
+            documentsByFilepath[filepath].sort((a, b) => a.metadata.order - b.metadata.order);
             context += '\n\n------\n';
-            context += 'Note Name:' + filename + '\n';
+            context += 'Note Path:' + filepath + '\n';
             let lastHeader: string[] = [''];
 
-            context += documentsByFilename[filename]
+            context += documentsByFilepath[filepath]
                 .map((document) => {
                     // if (document.metadata.header !== currentHeader) {
                     //     currentHeader = document.metadata.header;
