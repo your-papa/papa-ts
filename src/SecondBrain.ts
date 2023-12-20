@@ -1,4 +1,4 @@
-import { RunnablePassthrough, RunnableSequence } from 'langchain/schema/runnable';
+import { RunnableSequence, RunnableBranch } from 'langchain/schema/runnable';
 import { OpenAIChat } from 'langchain/llms/openai';
 import { PromptTemplate } from 'langchain/prompts';
 import { OramaStore } from './VectorStore';
@@ -9,8 +9,9 @@ import { StringOutputParser } from 'langchain/schema/output_parser';
 import { Serialized } from 'langchain/load/serializable';
 import { LLMResult } from 'langchain/schema';
 
-type input = {
-    query: string;
+type chainInput = {
+    isRAG: boolean;
+    userQuery: string;
     chatHistory: string;
 };
 
@@ -21,7 +22,7 @@ export interface SecondBrainData {
 
 export class SecondBrain {
     private vectorStore: OramaStore;
-    private ragChain: RunnableSequence;
+    private secondBrain: RunnableBranch;
     private retriever: VectorStoreRetriever;
 
     constructor(data: SecondBrainData) {
@@ -35,7 +36,7 @@ export class SecondBrain {
         this.retriever = this.vectorStore.asRetriever({ k: 30 });
 
         const model = new OpenAIChat({ openAIApiKey: data.openAIApiKey });
-        const prompt = PromptTemplate.fromTemplate(
+        const ragPrompt = PromptTemplate.fromTemplate(
             `Antworte als mein Assistent auf meine Frage ausschließlich basierend auf meinem Wissen im folgenden Kontext. Bitte erstelle links im folgenden format [[<Notename>#<Header1>##<Header2>###...]] aus den Note Headern und füge sie deiner Antwort als Referenz bei:
 ------------
 Kontext: {context}
@@ -45,20 +46,41 @@ Chat History: {chatHistory}
 Frage: {question}`
         );
 
-        this.ragChain = RunnableSequence.from([
+        const conversationPrompt = PromptTemplate.fromTemplate(
+            `Antworte als mein Assistent auf meine Frage ausschließlich basierend auf meinem Wissen im folgenden Kontext. Bitte erstelle links im folgenden format
+             [[<Notename>#<Header1>##<Header2>###...]] aus den Note Headern und füge sie deiner Antwort als Referenz bei:
+             ------------
+            Chat History: {chatHistory}
+            ------------
+            Frage: {question}`
+        );
+
+        const ragChain = RunnableSequence.from([
             {
-                question: (input: { query: string; chatHistory: string }) => input.query,
-                chatHistory: (input: { query: string; chatHistory: string }) => input.chatHistory,
-                context: async (input: { query: string; chatHistory: string }) => {
+                question: (input: { isRAG: boolean; query: string; chatHistory: string }) => input.query,
+                chatHistory: (input: { isRAG: boolean; query: string; chatHistory: string }) => input.chatHistory,
+                context: async (input: { isRAG: boolean; query: string; chatHistory: string }) => {
                     const relevantDocs = await this.retriever.getRelevantDocuments(input.query);
                     const processedDocs = SecondBrain.docsPostProcessor(relevantDocs);
                     return processedDocs;
                 },
             },
-            prompt,
+            ragPrompt,
             model,
             new StringOutputParser(),
         ]);
+
+        const conversationChain = RunnableSequence.from([
+            {
+                question: (input: { isRAG: boolean; query: string; chatHistory: string }) => input.query,
+                chatHistory: (input: { isRAG: boolean; query: string; chatHistory: string }) => input.chatHistory,
+            },
+            conversationPrompt,
+            model,
+            new StringOutputParser(),
+        ]);
+
+        this.secondBrain = RunnableBranch.from([[(input: { isRAG: boolean }) => input.isRAG, ragChain], conversationChain]);
     }
 
     async embedDocuments(documents: Document[]) {
@@ -71,24 +93,24 @@ Frage: {question}`
         await this.vectorStore.removeDocuments(documents);
     }
 
-    async runRAG(input: input): Promise<string> {
+    async runRAG(input: chainInput): Promise<string> {
         console.log('Running RAG...');
         console.log(input);
-        const result = this.ragChain.invoke(input, {
+        const result = this.secondBrain.invoke(input, {
             callbacks: [
                 {
-                    // handleRetrieverEnd: async (documents: Document[]) => {
-                    //     console.log(documents);
-                    // },
-                    // handleLLMStart: async (llm: Serialized, prompts: string[]) => {
-                    //     console.log(prompts[0]);
-                    // },
-                    // handleLLMEnd: async (output: LLMResult) => {
-                    //     console.log(output);
-                    // },
-                    // handleLLMError: async (err: Error) => {
-                    //     console.error(err);
-                    // },
+                    handleRetrieverEnd: async (documents: Document[]) => {
+                        console.log(documents);
+                    },
+                    handleLLMStart: async (llm: Serialized, prompts: string[]) => {
+                        console.log(prompts[0]);
+                    },
+                    handleLLMEnd: async (output: LLMResult) => {
+                        console.log(output);
+                    },
+                    handleLLMError: async (err: Error) => {
+                        console.error(err);
+                    },
                 },
             ],
         });
