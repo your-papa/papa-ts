@@ -17,21 +17,22 @@ type chainInput = {
 
 export interface SecondBrainData {
     openAIApiKey: string;
-    vectorStoreJson?: string;
+    saveHandler?: (vectorStoreJson: string) => void;
 }
 
 export class SecondBrain {
     private vectorStore: OramaStore;
     private secondBrain: RunnableBranch;
     private retriever: VectorStoreRetriever;
+    private saveHandler?: (vectorStoreJson: string) => void;
 
     constructor(data: SecondBrainData) {
         if (!data.openAIApiKey) {
             throw new Error('No OpenAI API key provided');
         }
+        this.saveHandler = data.saveHandler;
         this.vectorStore = new OramaStore(new OpenAIEmbeddings({ openAIApiKey: data.openAIApiKey, batchSize: 2048 }), {
             indexName: 'obsidiandb',
-            backupVectorStoreJson: data.vectorStoreJson,
         });
         this.retriever = this.vectorStore.asRetriever({ k: 30 });
 
@@ -88,10 +89,12 @@ Frage: {question}`
         console.log('Embedding documents...');
         await this.vectorStore.addDocuments(documents);
         console.log('Done embedding documents');
+        if (this.saveHandler) this.saveHandler(await this.vectorStore.getJson());
     }
 
     async removeDocuments(documents: Document[]) {
         await this.vectorStore.removeDocuments(documents);
+        if (this.saveHandler) this.saveHandler(await this.vectorStore.getJson());
     }
 
     async runRAG(input: chainInput): Promise<string> {
@@ -122,8 +125,8 @@ Frage: {question}`
         return await this.vectorStore.similaritySearch(query, 3);
     }
 
-    async getVectorStoreJson(): Promise<string> {
-        return await this.vectorStore.getJson();
+    load(vectorStoreJson: string) {
+        this.vectorStore.restoreDb(vectorStoreJson);
     }
 
     private static docsPostProcessor(documents: Document[]): string {

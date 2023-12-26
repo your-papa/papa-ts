@@ -6,7 +6,6 @@ import { Document } from 'langchain/document';
 
 export interface OramaLibArgs {
     indexName: string;
-    backupVectorStoreJson?: string;
 }
 
 const vectorStoreSchema = {
@@ -32,19 +31,15 @@ export class OramaStore extends VectorStore {
         args: OramaLibArgs
     ) {
         super(embeddings, args);
-        if (args.backupVectorStoreJson) {
-            this.db = this.restoreDb(args.backupVectorStoreJson);
-        } else {
-            this.db = create({
-                schema: vectorStoreSchema,
-                id: args.indexName,
-            });
-        }
+        this.db = create({
+            schema: vectorStoreSchema,
+            id: args.indexName,
+        });
     }
 
-    private async restoreDb(vectorStoreJson: string): Promise<Orama<typeof vectorStoreSchema>> {
+    restoreDb(vectorStoreJson: string) {
         console.log('Loading vector store from JSON');
-        return await restore('json', vectorStoreJson);
+        this.db = restore('json', vectorStoreJson);
     }
 
     async removeDocuments(documents: Document[]) {
