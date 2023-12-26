@@ -37,22 +37,23 @@ export class SecondBrain {
 
         const model = new OpenAIChat({ openAIApiKey: data.openAIApiKey });
         const ragPrompt = PromptTemplate.fromTemplate(
-            `Antworte als mein Assistent auf meine Frage ausschließlich basierend auf meinem Wissen im folgenden Kontext. Bitte erstelle links im folgenden format [[<Notename>#<Header1>##<Header2>###...]] aus den Note Headern und füge sie deiner Antwort als Referenz bei:
+            `Antworte als mein Assistent auf meine Frage ausschließlich basierend auf meinem Wissen im folgenden Kontext. Bitte gebe links zu den headern oder Bildern im folgenden format [[<Note Path>#<Header1>##<Header2>###...]] oder ![[<image.png>]] als Quelle an:
 ------------
 Kontext: {context}
 ------------
-Chat History: {chatHistory}
+Chat History: 
+{chatHistory}
 ------------
 Frage: {question}`
         );
 
         const conversationPrompt = PromptTemplate.fromTemplate(
-            `Antworte als mein Assistent auf meine Frage ausschließlich basierend auf meinem Wissen im folgenden Kontext. Bitte erstelle links im folgenden format
-             [[<Notename>#<Header1>##<Header2>###...]] aus den Note Headern und füge sie deiner Antwort als Referenz bei:
-             ------------
-            Chat History: {chatHistory}
-            ------------
-            Frage: {question}`
+            `Antworte als mein Assistent auf meine Frage.
+------------
+Chat History: 
+{chatHistory}
+------------
+Frage: {question}`
         );
 
         const ragChain = RunnableSequence.from([
@@ -123,10 +124,6 @@ Frage: {question}`
 
     async getVectorStoreJson(): Promise<string> {
         return await this.vectorStore.getJson();
-    }
-
-    static loadFromData(data: SecondBrainData): SecondBrain {
-        return new this(data);
     }
 
     private static docsPostProcessor(documents: Document[]): string {
