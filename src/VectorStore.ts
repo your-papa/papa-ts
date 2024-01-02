@@ -88,7 +88,7 @@ export class OramaStore extends VectorStore {
     }
 
     async similaritySearchVectorWithScore(query: number[], k: number): Promise<[Document, number][]> {
-        const results: Results<VectorDocument> = await searchVector(await this.db, { vector: query, property: 'embedding', limit: k, similarity: 0.4 });
+        const results: Results<VectorDocument> = await searchVector(await this.db, { vector: query, property: 'embedding', limit: k, similarity: 0.7 });
         return results.hits.map((result) => {
             return [
                 new Document({
