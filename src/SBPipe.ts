@@ -1,36 +1,37 @@
 import { BaseCallbackConfig } from 'langchain/callbacks';
-import { OpenAIChat } from 'langchain/llms/openai';
+import { LLM } from '@langchain/core/language_models/llms';
 import { StringOutputParser } from 'langchain/schema/output_parser';
 import { RunnableSequence, RunnableBranch, RunnablePassthrough } from 'langchain/schema/runnable';
 import { VectorStoreRetriever } from 'langchain/vectorstores/base';
 import { Document } from 'langchain/document';
-import { ragPrompt, conversationPrompt, reducePrompt, initialReducePrompt } from './Prompts';
+import { Prompts, Language } from './Prompts';
 
-export type ChainInput = {
+export type PipeInput = {
     isRAG: boolean;
     userQuery: string;
     chatHistory: string;
+    lang: Language;
 };
 
-export function createPipe(retriever: VectorStoreRetriever, model: OpenAIChat) {
+export function createPipe(retriever: VectorStoreRetriever, model: LLM, lang: Language) {
     const ragChain = RunnableSequence.from([
         {
-            query: (input: ChainInput) => input.userQuery,
-            chatHistory: (input: ChainInput) => input.chatHistory,
-            context: async (input: ChainInput) =>
-                retriever.pipe(getDocsPostProcessor(model, input.userQuery)).pipe(getDocsReducePipe(model, input.userQuery)).invoke(input.userQuery),
+            query: (input: PipeInput) => input.userQuery,
+            chatHistory: (input: PipeInput) => input.chatHistory,
+            context: async (input: PipeInput) =>
+                retriever.pipe(getDocsPostProcessor(model, input)).pipe(getDocsReducePipe(model, input)).invoke(input.userQuery),
         },
-        ragPrompt,
+        Prompts[lang].ragPrompt,
         model,
         new StringOutputParser(),
     ]);
 
     const conversationChain = RunnableSequence.from([
         {
-            query: (input: ChainInput) => input.userQuery,
-            chatHistory: (input: ChainInput) => input.chatHistory,
+            query: (input: PipeInput) => input.userQuery,
+            chatHistory: (input: PipeInput) => input.chatHistory,
         },
-        conversationPrompt,
+        Prompts[lang].conversationPrompt,
         model,
         new StringOutputParser(),
     ]);
@@ -38,9 +39,12 @@ export function createPipe(retriever: VectorStoreRetriever, model: OpenAIChat) {
     return RunnableBranch.from([[(input: { isRAG: boolean }) => input.isRAG, ragChain], conversationChain]);
 }
 
-function getDocsPostProcessor(model: OpenAIChat, userQuery = '') {
+function getDocsPostProcessor(model: LLM, pipeInput: PipeInput) {
     return async (documents: Document[]) => {
-        const tokenMax = 2000 - (await model.getNumTokens((await reducePrompt.formatPromptValue({ query: userQuery, content: '' })).toString())) - 5; // not sure why we need to subtract 5 tokens more
+        const tokenMax =
+            2000 -
+            (await model.getNumTokens((await Prompts[pipeInput.lang].reducePrompt.formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString())) -
+            5; // not sure why we need to subtract 5 tokens more
         console.log('Retrieved Docs', documents);
         // group documents by filepath
         const documentsByFilepath: Record<string, Document[]> = {};
@@ -86,7 +90,7 @@ function getDocsPostProcessor(model: OpenAIChat, userQuery = '') {
     };
 }
 
-function getDocsReducePipe(model: OpenAIChat, userQuery = '') {
+function getDocsReducePipe(model: LLM, pipeInput: PipeInput) {
     return async (
         notesContent: string[],
         options?: {
@@ -99,15 +103,18 @@ function getDocsReducePipe(model: OpenAIChat, userQuery = '') {
         let numTokens = 0;
 
         // 4097 max but not working that well
-        const tokenMax = 2000 - (await model.getNumTokens((await reducePrompt.formatPromptValue({ query: userQuery, content: '' })).toString())) - 5; // not sure why we need to subtract 5 tokens more
+        const tokenMax =
+            2000 -
+            (await model.getNumTokens((await Prompts[pipeInput.lang].reducePrompt.formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString())) -
+            5; // not sure why we need to subtract 5 tokens more
         do {
             if (editableConfig) editableConfig.runName = `Reduce ${reduceCount + 1}`;
 
             // split notes by length to fit into context length
             const splitedContents = await splitContents(contents, (content: string) => model.getNumTokens(content), tokenMax);
             const reduceChain = RunnableSequence.from([
-                { content: new RunnablePassthrough(), query: () => userQuery },
-                reduceCount === 0 ? initialReducePrompt : reducePrompt,
+                { content: new RunnablePassthrough(), query: () => pipeInput.userQuery },
+                reduceCount === 0 ? Prompts[pipeInput.lang].initialReducePrompt : Prompts[pipeInput.lang].reducePrompt,
                 model,
                 new StringOutputParser(),
             ]);

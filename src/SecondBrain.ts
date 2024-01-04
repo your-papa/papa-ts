@@ -1,10 +1,11 @@
-import { RunnableBranch } from 'langchain/schema/runnable';
+import { LLM } from '@langchain/core/language_models/llms';
 import { OpenAIChat } from 'langchain/llms/openai';
 import { OramaStore } from './VectorStore';
 import { Document } from 'langchain/document';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { Serialized } from 'langchain/load/serializable';
-import { ChainInput, createPipe } from './SBPipe';
+import { PipeInput, createPipe } from './SBPipe';
+import { VectorStoreRetriever } from 'langchain/vectorstores/base';
 
 export interface SecondBrainData {
     openAIApiKey: string;
@@ -13,8 +14,9 @@ export interface SecondBrainData {
 
 export class SecondBrain {
     private vectorStore: OramaStore;
-    private secondBrainPipe: RunnableBranch;
     private saveHandler?: (vectorStoreJson: string) => void;
+    private retriever: VectorStoreRetriever;
+    private model: LLM;
 
     constructor(data: SecondBrainData) {
         if (!data.openAIApiKey) {
@@ -24,9 +26,8 @@ export class SecondBrain {
         this.vectorStore = new OramaStore(new OpenAIEmbeddings({ openAIApiKey: data.openAIApiKey, batchSize: 2048 }), {
             indexName: 'obsidiandb',
         });
-        const retriever = this.vectorStore.asRetriever({ k: 100 });
-        const model = new OpenAIChat({ openAIApiKey: data.openAIApiKey });
-        this.secondBrainPipe = createPipe(retriever, model);
+        this.retriever = this.vectorStore.asRetriever({ k: 100 });
+        this.model = new OpenAIChat({ openAIApiKey: data.openAIApiKey });
     }
 
     async embedDocuments(documents: Document[]) {
@@ -41,17 +42,14 @@ export class SecondBrain {
         if (this.saveHandler) this.saveHandler(await this.vectorStore.getJson());
     }
 
-    async runRAG(input: ChainInput): Promise<string> {
+    async runRAG(input: PipeInput): Promise<string> {
         console.log('Running RAG... Input:', input);
-        const result = this.secondBrainPipe.invoke(input, {
+        const result = createPipe(this.retriever, this.model, input.lang).invoke(input, {
             callbacks: [
                 {
                     handleLLMStart: async (llm: Serialized, prompts: string[]) => {
                         console.log(prompts[0]);
                     },
-                    // handleLLMEnd: async (output: LLMResult) => {
-                    //     console.log(output);
-                    // },
                     handleLLMError: async (err: Error) => {
                         console.error(err);
                     },
