@@ -4,7 +4,7 @@ import { OramaStore } from './VectorStore';
 import { Document } from 'langchain/document';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { Serialized } from 'langchain/load/serializable';
-import { PipeInput, createPipe } from './SBPipe';
+import { PipeInput, createConversationPipe, createRagPipe } from './SBPipe';
 import { VectorStoreRetriever } from 'langchain/vectorstores/base';
 
 export interface SecondBrainData {
@@ -27,7 +27,7 @@ export class SecondBrain {
             indexName: 'obsidiandb',
         });
         this.retriever = this.vectorStore.asRetriever({ k: 100 });
-        this.model = new OpenAIChat({ openAIApiKey: data.openAIApiKey });
+        this.model = new OpenAIChat({ openAIApiKey: data.openAIApiKey, streaming: true });
     }
 
     async embedDocuments(documents: Document[]) {
@@ -42,9 +42,9 @@ export class SecondBrain {
         if (this.saveHandler) this.saveHandler(await this.vectorStore.getJson());
     }
 
-    async runRAG(input: PipeInput): Promise<string> {
+    runRAG(input: PipeInput) {
         console.log('Running RAG... Input:', input);
-        const result = createPipe(this.retriever, this.model, input.lang).invoke(input, {
+        const pipeOptions = {
             callbacks: [
                 {
                     handleLLMStart: async (llm: Serialized, prompts: string[]) => {
@@ -55,8 +55,10 @@ export class SecondBrain {
                     },
                 },
             ],
-        });
-        return result;
+        };
+        return input.isRAG
+            ? createRagPipe(this.retriever, this.model, input.lang).streamLog(input, pipeOptions)
+            : createConversationPipe(this.model, input.lang).streamLog(input, pipeOptions);
     }
 
     load(vectorStoreJson: string) {

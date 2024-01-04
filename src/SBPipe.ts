@@ -1,7 +1,7 @@
 import { BaseCallbackConfig } from 'langchain/callbacks';
 import { LLM } from '@langchain/core/language_models/llms';
 import { StringOutputParser } from 'langchain/schema/output_parser';
-import { RunnableSequence, RunnableBranch, RunnablePassthrough } from 'langchain/schema/runnable';
+import { RunnableSequence, RunnablePassthrough } from 'langchain/schema/runnable';
 import { VectorStoreRetriever } from 'langchain/vectorstores/base';
 import { Document } from 'langchain/document';
 import { Prompts, Language } from './Prompts';
@@ -13,7 +13,7 @@ export type PipeInput = {
     lang: Language;
 };
 
-export function createPipe(retriever: VectorStoreRetriever, model: LLM, lang: Language) {
+export function createRagPipe(retriever: VectorStoreRetriever, model: LLM, lang: Language) {
     const ragChain = RunnableSequence.from([
         {
             query: (input: PipeInput) => input.userQuery,
@@ -25,7 +25,10 @@ export function createPipe(retriever: VectorStoreRetriever, model: LLM, lang: La
         model,
         new StringOutputParser(),
     ]);
+    return ragChain;
+}
 
+export function createConversationPipe(model: LLM, lang: Language) {
     const conversationChain = RunnableSequence.from([
         {
             query: (input: PipeInput) => input.userQuery,
@@ -35,8 +38,7 @@ export function createPipe(retriever: VectorStoreRetriever, model: LLM, lang: La
         model,
         new StringOutputParser(),
     ]);
-
-    return RunnableBranch.from([[(input: { isRAG: boolean }) => input.isRAG, ragChain], conversationChain]);
+    return conversationChain;
 }
 
 function getDocsPostProcessor(model: LLM, pipeInput: PipeInput) {
