@@ -105,7 +105,6 @@ function getDocsReducePipe(model: OpenAIChat, userQuery = '') {
 
             // split notes by length to fit into context length
             const splitedContents = await splitContents(contents, (content: string) => model.getNumTokens(content), tokenMax);
-            console.log('Splited Docs', splitContents);
             const reduceChain = RunnableSequence.from([
                 { content: new RunnablePassthrough(), query: () => userQuery },
                 reduceCount === 0 ? initialReducePrompt : reducePrompt,
@@ -117,7 +116,6 @@ function getDocsReducePipe(model: OpenAIChat, userQuery = '') {
             numTokens = await model.getNumTokens(contents.join('\n\n'));
             reduceCount += 1;
         } while (numTokens > tokenMax);
-        console.log(`Reduced ${reduceCount} times`);
         return contents.join('\n\n');
     };
 }

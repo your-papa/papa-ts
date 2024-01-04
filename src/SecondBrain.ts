@@ -4,7 +4,6 @@ import { OramaStore } from './VectorStore';
 import { Document } from 'langchain/document';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { Serialized } from 'langchain/load/serializable';
-import { LLMResult } from 'langchain/schema';
 import { ChainInput, createPipe } from './SBPipe';
 
 export interface SecondBrainData {
@@ -43,20 +42,16 @@ export class SecondBrain {
     }
 
     async runRAG(input: ChainInput): Promise<string> {
-        console.log('Running RAG...');
-        console.log(input);
+        console.log('Running RAG... Input:', input);
         const result = this.secondBrainPipe.invoke(input, {
             callbacks: [
                 {
-                    handleRetrieverEnd: async (documents: Document[]) => {
-                        console.log(documents);
-                    },
                     handleLLMStart: async (llm: Serialized, prompts: string[]) => {
                         console.log(prompts[0]);
                     },
-                    handleLLMEnd: async (output: LLMResult) => {
-                        console.log(output);
-                    },
+                    // handleLLMEnd: async (output: LLMResult) => {
+                    //     console.log(output);
+                    // },
                     handleLLMError: async (err: Error) => {
                         console.error(err);
                     },
