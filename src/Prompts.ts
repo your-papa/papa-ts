@@ -1,5 +1,7 @@
 import { PromptTemplate } from 'langchain/prompts';
 
+type Prompts = { string: PromptTemplate };
+
 export const Prompts = {
     de: {
         initialReducePrompt: PromptTemplate.fromTemplate(
@@ -84,3 +86,14 @@ Question: {query}`
 };
 
 export type Language = keyof typeof Prompts;
+
+type AssistentLang = {
+    [key: string]: any;
+};
+
+export const AssistentLang: AssistentLang = {};
+
+let lang: string;
+for (lang of Object.keys(Prompts)) {
+    AssistentLang[lang] = lang;
+}

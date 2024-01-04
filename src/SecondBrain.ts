@@ -9,6 +9,9 @@ import { VectorStoreRetriever } from 'langchain/vectorstores/base';
 
 export interface SecondBrainData {
     openAIApiKey: string;
+    openAIModel?: string;
+    ollamaUrl?: string;
+    ollamaModel?: string;
     saveHandler?: (vectorStoreJson: string) => void;
 }
 
