@@ -1,17 +1,17 @@
 import { LLM } from '@langchain/core/language_models/llms';
 import { OpenAIChat } from 'langchain/llms/openai';
+import { Ollama } from 'langchain/llms/ollama';
 import { OramaStore } from './VectorStore';
 import { Document } from 'langchain/document';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { Serialized } from 'langchain/load/serializable';
 import { PipeInput, createConversationPipe, createRagPipe } from './SBPipe';
 import { VectorStoreRetriever } from 'langchain/vectorstores/base';
+import { OllamaGenModel, OpenAIEmbedModel, OpenAIGenModel, isOllamaGenModel, isOpenAIGenModel } from './Models';
 
 export interface SecondBrainData {
-    openAIApiKey: string;
-    openAIModel?: string;
-    ollamaUrl?: string;
-    ollamaModel?: string;
+    genModel: OllamaGenModel | OpenAIGenModel;
+    embedModel: OpenAIEmbedModel;
     saveHandler?: (vectorStoreJson: string) => void;
 }
 
@@ -22,15 +22,18 @@ export class SecondBrain {
     private model: LLM;
 
     constructor(data: SecondBrainData) {
-        if (!data.openAIApiKey) {
-            throw new Error('No OpenAI API key provided');
-        }
+        if (isOpenAIGenModel(data.genModel)) {
+            // if (!data.genModel.openAIApiKey) throw new Error('No OpenAI API key provided');
+            this.model = new OpenAIChat({ ...data.genModel, streaming: true });
+        } else if (isOllamaGenModel(data.genModel)) {
+            // if (!data.genModel.baseUrl) throw new Error('No Ollama API base URL provided');
+            this.model = new Ollama(data.genModel);
+        } else throw new Error('Invalid genModel');
         this.saveHandler = data.saveHandler;
-        this.vectorStore = new OramaStore(new OpenAIEmbeddings({ openAIApiKey: data.openAIApiKey, batchSize: 2048 }), {
+        this.vectorStore = new OramaStore(new OpenAIEmbeddings({ ...data.embedModel, batchSize: 2048 }), {
             indexName: 'obsidiandb',
         });
         this.retriever = this.vectorStore.asRetriever({ k: 100 });
-        this.model = new OpenAIChat({ openAIApiKey: data.openAIApiKey, streaming: true });
     }
 
     async embedDocuments(documents: Document[]) {
