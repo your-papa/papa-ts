@@ -13,28 +13,34 @@ export type PipeInput = {
     lang: Language;
 };
 
-export function createRagPipe(retriever: VectorStoreRetriever, model: LLM, lang: Language) {
+export function createRagPipe(retriever: VectorStoreRetriever, model: LLM, input: PipeInput) {
     const ragChain = RunnableSequence.from([
         {
             query: (input: PipeInput) => input.userQuery,
             chatHistory: (input: PipeInput) => input.chatHistory,
-            context: async (input: PipeInput) =>
-                retriever.pipe(getDocsPostProcessor(model, input)).pipe(getDocsReducePipe(model, input)).invoke(input.userQuery),
+            context: RunnableSequence.from([
+                (input: PipeInput) => input.userQuery,
+                retriever
+                    .withConfig({ runName: 'Retrieving' })
+                    .pipe(getDocsPostProcessor(model, input))
+                    .withConfig({ runName: 'PPDocs' })
+                    .pipe(getDocsReducePipe(model, input)),
+            ]),
         },
-        Prompts[lang].ragPrompt,
+        Prompts[input.lang].ragPrompt,
         model,
         new StringOutputParser(),
     ]);
     return ragChain;
 }
 
-export function createConversationPipe(model: LLM, lang: Language) {
+export function createConversationPipe(model: LLM, input: PipeInput) {
     const conversationChain = RunnableSequence.from([
         {
             query: (input: PipeInput) => input.userQuery,
             chatHistory: (input: PipeInput) => input.chatHistory,
         },
-        Prompts[lang].conversationPrompt,
+        Prompts[input.lang].conversationPrompt,
         model,
         new StringOutputParser(),
     ]);

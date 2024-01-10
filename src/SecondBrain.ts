@@ -1,5 +1,6 @@
 import { LLM } from '@langchain/core/language_models/llms';
 import { OpenAIChat } from 'langchain/llms/openai';
+import { RunLogPatch } from '@langchain/core/tracers/log_stream';
 import { Ollama } from 'langchain/llms/ollama';
 import { OramaStore } from './VectorStore';
 import { Document } from 'langchain/document';
@@ -8,11 +9,17 @@ import { Serialized } from 'langchain/load/serializable';
 import { PipeInput, createConversationPipe, createRagPipe } from './SBPipe';
 import { VectorStoreRetriever } from 'langchain/vectorstores/base';
 import { OllamaGenModel, OpenAIEmbedModel, OpenAIGenModel, isOllamaGenModel, isOpenAIGenModel } from './Models';
+import { applyPatch } from 'fast-json-patch';
 
 export interface SecondBrainData {
     genModel: OllamaGenModel | OpenAIGenModel;
     embedModel: OpenAIEmbedModel;
     saveHandler?: (vectorStoreJson: string) => void;
+}
+
+export interface SecondBrainResponse {
+    status: 'Startup' | 'Retrieving' | 'Reducing' | 'Generating';
+    content?: string;
 }
 
 export class SecondBrain {
@@ -51,7 +58,7 @@ export class SecondBrain {
         if (this.saveHandler) this.saveHandler(await this.vectorStore.getJson());
     }
 
-    runRAG(input: PipeInput) {
+    run(input: PipeInput) {
         console.log('Running RAG... Input:', input);
         const pipeOptions = {
             callbacks: [
@@ -66,8 +73,29 @@ export class SecondBrain {
             ],
         };
         return input.isRAG
-            ? createRagPipe(this.retriever, this.model, input.lang).streamLog(input, pipeOptions)
-            : createConversationPipe(this.model, input.lang).streamLog(input, pipeOptions);
+            ? this._streamProcessor(createRagPipe(this.retriever, this.model, input).streamLog(input, pipeOptions))
+            : this._streamProcessor(createConversationPipe(this.model, input).streamLog(input, pipeOptions));
+    }
+
+    async *_streamProcessor(responseStream: AsyncGenerator<RunLogPatch>): AsyncGenerator<SecondBrainResponse> {
+        let pipeOutput: any = {};
+        let alreadyRetrieved = false;
+        let alreadyReduced = false;
+        let sbResponse: SecondBrainResponse = { status: 'Startup', content: '...' };
+        for await (const response of responseStream) {
+            pipeOutput = applyPatch(pipeOutput, response.ops).newDocument;
+            // console.log('Stream Log', structuredClone(pipeOutput));
+            if (!alreadyRetrieved && pipeOutput.logs.Retrieving) {
+                alreadyRetrieved = true;
+                sbResponse = { status: 'Retrieving', content: 'Retrieving...' };
+            } else if (!alreadyReduced && pipeOutput.logs.PPDocs && pipeOutput.logs.PPDocs.final_output) {
+                alreadyReduced = true;
+                sbResponse = { status: 'Reducing', content: 'Reducing...' };
+            } else if (pipeOutput.streamed_output.join('') !== '') {
+                sbResponse = { status: 'Generating', content: pipeOutput.streamed_output.join('') };
+            }
+            yield sbResponse;
+        }
     }
 
     load(vectorStoreJson: string) {
