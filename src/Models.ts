@@ -29,7 +29,7 @@ export const OpenAIEmbedModels = {
 };
 
 export const OllamaGenModels = {
-    'llama-2': {
+    llama2: {
         maxTokens: 4096,
         description: 'Llama-2 (4096 Tokens)',
     },

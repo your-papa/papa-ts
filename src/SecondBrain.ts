@@ -22,18 +22,21 @@ export class SecondBrain {
     private model: LLM;
 
     constructor(data: SecondBrainData) {
-        if (isOpenAIGenModel(data.genModel)) {
-            // if (!data.genModel.openAIApiKey) throw new Error('No OpenAI API key provided');
-            this.model = new OpenAIChat({ ...data.genModel, streaming: true });
-        } else if (isOllamaGenModel(data.genModel)) {
-            // if (!data.genModel.baseUrl) throw new Error('No Ollama API base URL provided');
-            this.model = new Ollama(data.genModel);
-        } else throw new Error('Invalid genModel');
+        this.setGenModel(data.genModel);
         this.saveHandler = data.saveHandler;
         this.vectorStore = new OramaStore(new OpenAIEmbeddings({ ...data.embedModel, batchSize: 2048 }), {
             indexName: 'obsidiandb',
         });
         this.retriever = this.vectorStore.asRetriever({ k: 100 });
+    }
+
+    async setGenModel(genModel: OllamaGenModel | OpenAIGenModel) {
+        console.log('Setting genModel...', genModel);
+        if (isOpenAIGenModel(genModel)) {
+            this.model = new OpenAIChat({ ...genModel, streaming: true });
+        } else if (isOllamaGenModel(genModel)) {
+            this.model = new Ollama(genModel);
+        } else throw new Error('Invalid genModel');
     }
 
     async embedDocuments(documents: Document[]) {
