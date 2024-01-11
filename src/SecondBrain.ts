@@ -90,7 +90,7 @@ export class SecondBrain {
                 sbResponse = { status: 'Retrieving', content: 'Retrieving...' };
             } else if (!alreadyReduced && pipeOutput.logs.PPDocs && pipeOutput.logs.PPDocs.final_output) {
                 alreadyReduced = true;
-                sbResponse = { status: 'Reducing', content: 'Reducing...' };
+                sbResponse = { status: 'Reducing', content: 'Reducing... ' + pipeOutput.logs.PPDocs.final_output.output.length + ' notes' };
             } else if (pipeOutput.streamed_output.join('') !== '') {
                 sbResponse = { status: 'Generating', content: pipeOutput.streamed_output.join('') };
             }
