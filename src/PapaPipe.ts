@@ -1,10 +1,11 @@
-import { BaseCallbackConfig } from 'langchain/callbacks';
-import { LLM } from '@langchain/core/language_models/llms';
-import { StringOutputParser } from 'langchain/schema/output_parser';
-import { RunnableSequence, RunnablePassthrough } from 'langchain/schema/runnable';
-import { VectorStoreRetriever } from 'langchain/vectorstores/base';
-import { Document } from 'langchain/document';
-import { Prompts, Language } from './Prompts';
+import { BaseCallbackConfig } from '@langchain/core/callbacks/manager';
+import { Document } from '@langchain/core/documents';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { StringOutputParser } from '@langchain/core/output_parsers';
+import { RunnablePassthrough, RunnableSequence } from '@langchain/core/runnables';
+import { VectorStoreRetriever } from '@langchain/core/vectorstores';
+
+import { Language, Prompts } from './Prompts';
 
 export type PipeInput = {
     isRAG: boolean;
@@ -13,7 +14,7 @@ export type PipeInput = {
     lang: Language;
 };
 
-export function createRagPipe(retriever: VectorStoreRetriever, model: LLM, input: PipeInput) {
+export function createRagPipe(retriever: VectorStoreRetriever, model: BaseChatModel, input: PipeInput) {
     const ragChain = RunnableSequence.from([
         {
             query: (input: PipeInput) => input.userQuery,
@@ -34,7 +35,7 @@ export function createRagPipe(retriever: VectorStoreRetriever, model: LLM, input
     return ragChain;
 }
 
-export function createConversationPipe(model: LLM, input: PipeInput) {
+export function createConversationPipe(model: BaseChatModel, input: PipeInput) {
     const conversationChain = RunnableSequence.from([
         {
             query: (input: PipeInput) => input.userQuery,
@@ -47,7 +48,7 @@ export function createConversationPipe(model: LLM, input: PipeInput) {
     return conversationChain;
 }
 
-function getDocsPostProcessor(model: LLM, pipeInput: PipeInput) {
+function getDocsPostProcessor(model: BaseChatModel, pipeInput: PipeInput) {
     return async (documents: Document[]) => {
         const tokenMax =
             2000 -
@@ -98,7 +99,7 @@ function getDocsPostProcessor(model: LLM, pipeInput: PipeInput) {
     };
 }
 
-function getDocsReducePipe(model: LLM, pipeInput: PipeInput) {
+function getDocsReducePipe(model: BaseChatModel, pipeInput: PipeInput) {
     return async (
         notesContent: string[],
         options?: {

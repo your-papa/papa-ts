@@ -1,8 +1,8 @@
-import { Results, Orama, TypedDocument, create, insertMultiple, removeMultiple, search, searchVector } from '@orama/orama';
+import { Document } from '@langchain/core/documents';
+import { Embeddings } from '@langchain/core/embeddings';
+import { VectorStore } from '@langchain/core/vectorstores';
+import { Orama, Results, TypedDocument, create, insertMultiple, removeMultiple, search, searchVector } from '@orama/orama';
 import { persist, restore } from '@orama/plugin-data-persistence';
-import { Embeddings } from 'langchain/embeddings/base';
-import { VectorStore } from 'langchain/vectorstores/base';
-import { Document } from 'langchain/document';
 
 export interface OramaLibArgs {
     indexName: string;

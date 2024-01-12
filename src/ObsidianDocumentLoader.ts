@@ -1,6 +1,6 @@
-import { App, TFile } from 'obsidian';
-import { Document } from 'langchain/document';
+import { Document } from '@langchain/core/documents';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
+import { App, TFile } from 'obsidian';
 
 export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): Promise<Document[]> {
     let docs: Document[] = [];

@@ -1,4 +1,4 @@
-import { PromptTemplate } from 'langchain/prompts';
+import { PromptTemplate } from '@langchain/core/prompts';
 
 export const Prompts = {
     de: {

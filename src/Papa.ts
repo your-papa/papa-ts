@@ -1,16 +1,16 @@
-import { LLM } from '@langchain/core/language_models/llms';
-import { OpenAIChat } from 'langchain/llms/openai';
+import { ChatOllama } from '@langchain/community/chat_models/ollama';
+import { Document } from '@langchain/core/documents';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { Serialized } from '@langchain/core/load/serializable';
 import { RunLogPatch } from '@langchain/core/tracers/log_stream';
-import { Ollama } from 'langchain/llms/ollama';
-import { OramaStore } from './VectorStore';
-import { Document } from 'langchain/document';
-import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
-import { Serialized } from 'langchain/load/serializable';
-import { PipeInput, createConversationPipe, createRagPipe } from './SBPipe';
-import { VectorStoreRetriever } from 'langchain/vectorstores/base';
-import { OllamaGenModel, OpenAIEmbedModel, OpenAIGenModel, isOllamaGenModel, isOpenAIGenModel } from './Models';
+import { VectorStoreRetriever } from '@langchain/core/vectorstores';
+import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { applyPatch } from 'fast-json-patch';
+
+import { OllamaGenModel, OpenAIEmbedModel, OpenAIGenModel, isOllamaGenModel, isOpenAIGenModel } from './Models';
+import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
+import { OramaStore } from './VectorStore';
 
 export interface PapaData {
     genModel: OllamaGenModel | OpenAIGenModel;
@@ -27,7 +27,7 @@ export class Papa {
     private vectorStore: OramaStore;
     private saveHandler?: (vectorStoreJson: string) => void;
     private retriever: VectorStoreRetriever;
-    private model: LLM;
+    private model: BaseChatModel;
 
     constructor(data: PapaData) {
         this.setGenModel(data.genModel);
@@ -41,9 +41,9 @@ export class Papa {
     async setGenModel(genModel: OllamaGenModel | OpenAIGenModel) {
         console.log('Setting genModel...', genModel);
         if (isOpenAIGenModel(genModel)) {
-            this.model = new OpenAIChat({ ...genModel, streaming: true });
+            this.model = new ChatOpenAI({ ...genModel, streaming: true });
         } else if (isOllamaGenModel(genModel)) {
-            this.model = new Ollama(genModel);
+            this.model = new ChatOllama(genModel);
         } else throw new Error('Invalid genModel');
     }
 
