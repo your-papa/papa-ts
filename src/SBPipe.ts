@@ -27,7 +27,7 @@ export function createRagPipe(retriever: VectorStoreRetriever, model: LLM, input
                     .pipe(getDocsReducePipe(model, input)),
             ]),
         },
-        Prompts[input.lang].ragPrompt,
+        Prompts[input.lang].rag,
         model,
         new StringOutputParser(),
     ]);
@@ -40,7 +40,7 @@ export function createConversationPipe(model: LLM, input: PipeInput) {
             query: (input: PipeInput) => input.userQuery,
             chatHistory: (input: PipeInput) => input.chatHistory,
         },
-        Prompts[input.lang].conversationPrompt,
+        Prompts[input.lang].conversation,
         model,
         new StringOutputParser(),
     ]);
@@ -51,7 +51,7 @@ function getDocsPostProcessor(model: LLM, pipeInput: PipeInput) {
     return async (documents: Document[]) => {
         const tokenMax =
             2000 -
-            (await model.getNumTokens((await Prompts[pipeInput.lang].reducePrompt.formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString())) -
+            (await model.getNumTokens((await Prompts[pipeInput.lang].reduce.formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString())) -
             5; // not sure why we need to subtract 5 tokens more
         console.log('Retrieved Docs', documents);
         // group documents by filepath
@@ -113,7 +113,7 @@ function getDocsReducePipe(model: LLM, pipeInput: PipeInput) {
         // 4097 max but not working that well
         const tokenMax =
             2000 -
-            (await model.getNumTokens((await Prompts[pipeInput.lang].reducePrompt.formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString())) -
+            (await model.getNumTokens((await Prompts[pipeInput.lang].reduce.formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString())) -
             5; // not sure why we need to subtract 5 tokens more
         do {
             if (editableConfig) editableConfig.runName = `Reduce ${reduceCount + 1}`;
@@ -122,7 +122,7 @@ function getDocsReducePipe(model: LLM, pipeInput: PipeInput) {
             const splitedContents = await splitContents(contents, (content: string) => model.getNumTokens(content), tokenMax);
             const reduceChain = RunnableSequence.from([
                 { content: new RunnablePassthrough(), query: () => pipeInput.userQuery },
-                reduceCount === 0 ? Prompts[pipeInput.lang].initialReducePrompt : Prompts[pipeInput.lang].reducePrompt,
+                reduceCount === 0 ? Prompts[pipeInput.lang].initialReduce : Prompts[pipeInput.lang].reduce,
                 model,
                 new StringOutputParser(),
             ]);

@@ -10,6 +10,7 @@ import { PipeInput, createConversationPipe, createRagPipe } from './SBPipe';
 import { VectorStoreRetriever } from 'langchain/vectorstores/base';
 import { OllamaGenModel, OpenAIEmbedModel, OpenAIGenModel, isOllamaGenModel, isOpenAIGenModel } from './Models';
 import { applyPatch } from 'fast-json-patch';
+import { Language, Prompts } from './Prompts';
 
 export interface SecondBrainData {
     genModel: OllamaGenModel | OpenAIGenModel;
@@ -56,6 +57,10 @@ export class SecondBrain {
     async removeDocuments(documents: Document[]) {
         await this.vectorStore.removeDocuments(documents);
         if (this.saveHandler) this.saveHandler(await this.vectorStore.getJson());
+    }
+
+    async createTitleFromChatHistory(lang: Language, chatHistory: string) {
+        return await this.model.invoke(await Prompts[lang].createTitle.formatPromptValue({ chatHistory }));
     }
 
     run(input: PipeInput) {
