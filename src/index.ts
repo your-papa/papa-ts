@@ -1,4 +1,4 @@
-import { SecondBrain, SecondBrainData } from './SecondBrain';
+import { Papa, PapaData } from './Papa';
 import { obsidianDocumentLoader } from './ObsidianDocumentLoader';
 import { Language, Languages } from './Prompts';
 import {
@@ -14,8 +14,8 @@ import {
 } from './Models';
 
 export {
-    SecondBrain,
-    SecondBrainData,
+    Papa,
+    PapaData,
     obsidianDocumentLoader,
     Language,
     Languages,

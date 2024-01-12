@@ -12,24 +12,24 @@ import { OllamaGenModel, OpenAIEmbedModel, OpenAIGenModel, isOllamaGenModel, isO
 import { applyPatch } from 'fast-json-patch';
 import { Language, Prompts } from './Prompts';
 
-export interface SecondBrainData {
+export interface PapaData {
     genModel: OllamaGenModel | OpenAIGenModel;
     embedModel: OpenAIEmbedModel;
     saveHandler?: (vectorStoreJson: string) => void;
 }
 
-export interface SecondBrainResponse {
+export interface PapaResponse {
     status: 'Startup' | 'Retrieving' | 'Reducing' | 'Generating';
     content?: string;
 }
 
-export class SecondBrain {
+export class Papa {
     private vectorStore: OramaStore;
     private saveHandler?: (vectorStoreJson: string) => void;
     private retriever: VectorStoreRetriever;
     private model: LLM;
 
-    constructor(data: SecondBrainData) {
+    constructor(data: PapaData) {
         this.setGenModel(data.genModel);
         this.saveHandler = data.saveHandler;
         this.vectorStore = new OramaStore(new OpenAIEmbeddings({ ...data.embedModel, batchSize: 2048 }), {
@@ -82,11 +82,11 @@ export class SecondBrain {
             : this._streamProcessor(createConversationPipe(this.model, input).streamLog(input, pipeOptions));
     }
 
-    async *_streamProcessor(responseStream: AsyncGenerator<RunLogPatch>): AsyncGenerator<SecondBrainResponse> {
+    async *_streamProcessor(responseStream: AsyncGenerator<RunLogPatch>): AsyncGenerator<PapaResponse> {
         let pipeOutput: any = {};
         let alreadyRetrieved = false;
         let alreadyReduced = false;
-        let sbResponse: SecondBrainResponse = { status: 'Startup', content: '...' };
+        let sbResponse: PapaResponse = { status: 'Startup', content: '...' };
         for await (const response of responseStream) {
             pipeOutput = applyPatch(pipeOutput, response.ops).newDocument;
             // console.log('Stream Log', structuredClone(pipeOutput));
