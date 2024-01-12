@@ -3,6 +3,8 @@ import { Document } from '@langchain/core/documents';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { Serialized } from '@langchain/core/load/serializable';
 import { RunLogPatch } from '@langchain/core/tracers/log_stream';
+import { RunnablePassthrough, RunnableSequence } from '@langchain/core/runnables';
+import { StringOutputParser } from '@langchain/core/output_parsers';
 import { VectorStoreRetriever } from '@langchain/core/vectorstores';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { applyPatch } from 'fast-json-patch';
@@ -60,7 +62,7 @@ export class Papa {
     }
 
     async createTitleFromChatHistory(lang: Language, chatHistory: string) {
-        return await this.model.invoke(await Prompts[lang].createTitle.formatPromptValue({ chatHistory }));
+        return RunnableSequence.from([Prompts[lang].createTitle, this.model, new StringOutputParser()]).invoke({ chatHistory });
     }
 
     run(input: PipeInput) {
