@@ -13,6 +13,8 @@ import { OllamaGenModel, OpenAIEmbedModel, OpenAIGenModel, isOllamaGenModel, isO
 import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
 import { OramaStore } from './VectorStore';
+import { OramaRecordManager } from './RecordManager';
+import { index } from './Indexing';
 
 export interface PapaData {
     genModel: OllamaGenModel | OpenAIGenModel;
@@ -30,18 +32,19 @@ export class Papa {
     private saveHandler?: (vectorStoreJson: string) => void;
     private retriever: VectorStoreRetriever;
     private model: BaseChatModel;
+    private recordManager: OramaRecordManager;
 
     constructor(data: PapaData) {
         this.setGenModel(data.genModel);
         this.saveHandler = data.saveHandler;
         this.vectorStore = new OramaStore(new OpenAIEmbeddings({ ...data.embedModel, batchSize: 2048 }), {
-            indexName: 'obsidiandb',
+            indexName: 'VectorStore',
         });
         this.retriever = this.vectorStore.asRetriever({ k: 100 });
+        this.recordManager = new OramaRecordManager({ indexName: 'RecordManager' });
     }
 
     async setGenModel(genModel: OllamaGenModel | OpenAIGenModel) {
-        console.log('Setting genModel...', genModel);
         if (isOpenAIGenModel(genModel)) {
             this.model = new ChatOpenAI({ ...genModel, streaming: true });
         } else if (isOllamaGenModel(genModel)) {
@@ -51,14 +54,12 @@ export class Papa {
 
     async embedDocuments(documents: Document[]) {
         console.log('Embedding documents...');
-        await this.vectorStore.addDocuments(documents);
+        await index(documents, this.recordManager, this.vectorStore);
         console.log('Done embedding documents');
-        if (this.saveHandler) this.saveHandler(await this.vectorStore.getJson());
-    }
-
-    async removeDocuments(documents: Document[]) {
-        await this.vectorStore.removeDocuments(documents);
-        if (this.saveHandler) this.saveHandler(await this.vectorStore.getJson());
+        if (this.saveHandler)
+            this.saveHandler(
+                JSON.stringify({ VectorStore: JSON.parse(await this.vectorStore.getJson()), RecordManager: JSON.parse(await this.recordManager.getJson()) })
+            );
     }
 
     async createTitleFromChatHistory(lang: Language, chatHistory: string) {
@@ -106,6 +107,8 @@ export class Papa {
     }
 
     load(vectorStoreJson: string) {
-        this.vectorStore.restoreDb(vectorStoreJson);
+        const { VectorStore, RecordManager } = JSON.parse(vectorStoreJson);
+        this.recordManager.restoreDb(JSON.stringify(RecordManager));
+        this.vectorStore.restoreDb(JSON.stringify(VectorStore));
     }
 }

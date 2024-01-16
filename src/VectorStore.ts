@@ -4,7 +4,7 @@ import { VectorStore } from '@langchain/core/vectorstores';
 import { Orama, Results, TypedDocument, create, insertMultiple, removeMultiple, search, searchVector } from '@orama/orama';
 import { persist, restore } from '@orama/plugin-data-persistence';
 
-export interface OramaLibArgs {
+export interface OramaStoreArgs {
     indexName: string;
 }
 
@@ -28,7 +28,7 @@ export class OramaStore extends VectorStore {
 
     constructor(
         public embeddings: Embeddings,
-        args: OramaLibArgs
+        args: OramaStoreArgs
     ) {
         super(embeddings, args);
         this.db = create({
@@ -42,28 +42,15 @@ export class OramaStore extends VectorStore {
         this.db = restore('json', vectorStoreJson);
     }
 
-    async removeDocuments(documents: Document[]) {
+    async delete(filters: { ids: string[] }) {
         // console.log('Removing documents', documents);
-        const ids = await removeMultiple(
-            await this.db,
-            documents.map((document) => document.metadata.id)
-        );
+        const removedIds = await removeMultiple(await this.db, filters.ids);
         // console.log('Removed documents with ids', ids);
     }
 
     async addVectors(vectors: number[][], documents: Document[]) {
-        const filepathsToUpdate = documents.map((document) => document.metadata.filepath).filter((value, index, array) => array.indexOf(value) === index);
-        for (const filepath of filepathsToUpdate) {
-            // TODO: remove limit?
-            const vectorsToUpdate = await search(await this.db, { properties: ['filepath'], term: filepath, exact: true, limit: 10000 });
-            // console.log('Removed documents', vectorsToUpdate, 'for filepath', filepath);
-            await removeMultiple(
-                await this.db,
-                vectorsToUpdate.hits.map((hit) => hit.document.id)
-            );
-        }
         const docs: VectorDocument[] = documents.map((document, index) => ({
-            id: document.metadata.id,
+            id: document.metadata.hash,
             filepath: document.metadata.filepath,
             content: document.metadata.content,
             header: document.metadata.header,
@@ -81,7 +68,7 @@ export class OramaStore extends VectorStore {
         console.log((await this.db).data.docs);
     }
 
-    static async fromDocuments(documents: Document[], embeddings: Embeddings, args: OramaLibArgs) {
+    static async fromDocuments(documents: Document[], embeddings: Embeddings, args: OramaStoreArgs) {
         const store = new this(embeddings, args);
         await store.addDocuments(documents);
         return store;

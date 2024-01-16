@@ -1,6 +1,13 @@
 import { Document } from '@langchain/core/documents';
+import crypto from 'crypto';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { App, TFile } from 'obsidian';
+
+function hashString(inputString: string): string {
+    return crypto.createHash('sha1').update(inputString, 'utf-8').digest('hex');
+}
+
+// TODO create custom Document type
 
 export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): Promise<Document[]> {
     let docs: Document[] = [];
@@ -23,15 +30,18 @@ export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): 
         for (const section of fileMetadata.sections || []) {
             const sectionContent = pageContent.slice(section.position.start.offset, section.position.end.offset);
             if (section.type === 'yaml' && !foundFrontmatter) {
+                const id = file.path + ' metadata';
+                const pageContent = 'Note Path: ' + file.path + '\n' + 'Metadaten:\n' + sectionContent;
                 docs.push({
                     metadata: {
-                        id: file.path + ' metadata',
+                        id,
+                        hash: hashString(id + pageContent),
                         filepath: file.path,
                         order: 0,
                         header: [],
                         content: 'Metadaten:\n' + sectionContent,
                     },
-                    pageContent: 'Note Path: ' + file.path + '\n' + 'Metadaten:\n' + sectionContent,
+                    pageContent,
                 });
                 foundFrontmatter = true;
                 continue;
@@ -57,29 +67,35 @@ export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): 
             } else if (section.type === 'paragraph') {
                 const splitParagraph = await splitter.splitText(sectionContent);
                 for (const paragraph of splitParagraph) {
+                    const id = file.path + headingTree.join('') + ' ID' + docCount;
+                    const pageContent = 'Note Path: ' + file.path + '\n' + headingTree.join('\n') + '\n' + paragraph;
                     docs.push({
                         metadata: {
-                            id: file.path + headingTree.join('') + ' ID' + docCount,
+                            id,
+                            hash: hashString(id + pageContent),
                             filepath: file.path,
                             order: docCount,
                             header: [...headingTree],
                             content: paragraph,
                         },
-                        pageContent: 'Note Path: ' + file.path + '\n' + headingTree.join('\n') + '\n' + paragraph,
+                        pageContent,
                     });
                     docCount++;
                 }
             } else {
                 // TODO handle other types like huge code blocks (Use codespliter)
+                const id = file.path + headingTree.join('') + ' ID' + docCount;
+                const pageContent = 'Note Path: ' + file.path + '\n' + headingTree.join('\n') + '\n' + sectionContent;
                 docs.push({
                     metadata: {
-                        id: file.path + headingTree.join('') + ' ID' + docCount,
+                        id,
+                        hash: hashString(id + pageContent),
                         filepath: file.path,
                         order: docCount,
                         header: [...headingTree],
                         content: sectionContent,
                     },
-                    pageContent: 'Note Path: ' + file.path + '\n' + headingTree.join('\n') + '\n' + sectionContent,
+                    pageContent,
                 });
                 docCount++;
             }
