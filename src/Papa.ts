@@ -3,7 +3,7 @@ import { Document } from '@langchain/core/documents';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { Serialized } from '@langchain/core/load/serializable';
 import { RunLogPatch } from '@langchain/core/tracers/log_stream';
-import { RunnablePassthrough, RunnableSequence } from '@langchain/core/runnables';
+import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { VectorStoreRetriever } from '@langchain/core/vectorstores';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';

@@ -3,8 +3,8 @@ import { PromptTemplate } from '@langchain/core/prompts';
 export const Prompts = {
     de: {
         createTitle:
-            PromptTemplate.fromTemplate(`Erstelle einen Titel der die folgende Chathistory zusammenfasst, sodass er direkt als Dateinamen verwendet werden kann. Der Dateiname darf also keine Sonderzeichen wie Schrägstriche (/, \\), Doppelpunkte (:), Sternchen (*), Fragezeichen (*), oder Ausrufezeichen (!) enthalten.
-Chathistory:
+            PromptTemplate.fromTemplate(`Erstelle einen sehr kurzen Titel als Zussamenfassung über die folgende Konversation, sodass er direkt als Dateinamen verwendet werden kann. Der Title darf also ausschließlich nur aus Buchstaben und Leerzeichen bestehen.
+Conversation:
 "{chatHistory}"
 
 Titel:`),
@@ -15,14 +15,18 @@ Achte darauf, für jede zusammengefassten Note einen Wikilink (e.g. [[<Note Path
 Bitte behalte die markdown formatiertung der Notes bei.
 ------------
 Meine Notes: 
-{content}`
+{content}
+------------
+Zusammenfassung:`
         ),
         reduce: PromptTemplate.fromTemplate(
             `Fasse meine Notes zusammen, sodass die Frage "{query}" im nachhinein noch ausführlich beantwortet werden könnte.
 Achte darauf, die markdown und wikilink formatierung in den Notes beizubehalten.
 ------------
 Meine Notes: 
-{content}`
+{content}
+------------
+Zusammenfassung:`
         ),
 
         rag: PromptTemplate.fromTemplate(
@@ -35,7 +39,9 @@ Mein Wissen:
 Chat History: 
 {chatHistory}
 ------------
-Frage: {query}`
+Frage: {query}
+------------
+Antwort:`
         ),
 
         conversation: PromptTemplate.fromTemplate(
@@ -44,13 +50,14 @@ Frage: {query}`
 Chat History: 
 {chatHistory}
 ------------
-Frage: {query}`
+Frage: {query}
+Antwort:`
         ),
     },
     en: {
         createTitle:
-            PromptTemplate.fromTemplate(`Create a title that summarizes the following chat history so that it can be used directly as a filename. The filename must not contain any special characters such as slashes (/, \\), colons (:), asterisks (*), question marks (*), or exclamation marks (!).
-Chat History:
+            PromptTemplate.fromTemplate(`Create a short Title about the following conversation, so that it can be used directly as a filename. The Title may only consist of letters and spaces.
+Conversation:
 "{chatHistory}"
 
 Title:`),
@@ -61,14 +68,16 @@ Make sure to include a wikilink (e.g. [[<Note Path><# Header1><## Header2>...]])
 Please keep the markdown formatting of the notes.
 ------------
 My Notes:
-{content}`
+{content}
+Summary:`
         ),
         reduce: PromptTemplate.fromTemplate(
             `Summarize my notes so that the question "{query}" could still be answered in detail afterwards.
 Make sure to keep the markdown and wikilink formatting in the notes.
 ------------
 My Notes:
-{content}`
+{content}
+Summary:`
         ),
 
         rag: PromptTemplate.fromTemplate(
@@ -81,7 +90,9 @@ My Knowledge:
 Chat History:
 {chatHistory}
 ------------
-Question: {query}`
+Question: {query}
+------------
+Answer:`
         ),
 
         conversation: PromptTemplate.fromTemplate(
@@ -90,7 +101,9 @@ Question: {query}`
 Chat History:
 {chatHistory}
 ------------
-Question: {query}`
+Question: {query}
+------------
+Answer:`
         ),
     },
 };
