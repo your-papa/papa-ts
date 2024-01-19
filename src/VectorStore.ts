@@ -1,7 +1,7 @@
 import { Document } from '@langchain/core/documents';
 import { Embeddings } from '@langchain/core/embeddings';
 import { VectorStore } from '@langchain/core/vectorstores';
-import { Orama, Results, TypedDocument, create, insertMultiple, removeMultiple, search, searchVector } from '@orama/orama';
+import { Orama, Results, TypedDocument, create, insertMultiple, removeMultiple, search } from '@orama/orama';
 import { persist, restore } from '@orama/plugin-data-persistence';
 
 export interface OramaStoreArgs {
@@ -65,7 +65,6 @@ export class OramaStore extends VectorStore {
 
     async addDocuments(documents: Document[]) {
         await this.addVectors(await this.embeddings.embedDocuments(documents.map((document) => document.pageContent)), documents);
-        console.log((await this.db).data.docs);
     }
 
     static async fromDocuments(documents: Document[], embeddings: Embeddings, args: OramaStoreArgs) {
@@ -75,7 +74,12 @@ export class OramaStore extends VectorStore {
     }
 
     async similaritySearchVectorWithScore(query: number[], k: number): Promise<[Document, number][]> {
-        const results: Results<VectorDocument> = await searchVector(await this.db, { vector: query, property: 'embedding', limit: k, similarity: 0.7 });
+        const results: Results<VectorDocument> = await search(await this.db, {
+            mode: 'vector',
+            vector: { value: query, property: 'embedding' },
+            limit: k,
+            similarity: 0.8,
+        });
         return results.hits.map((result) => {
             return [
                 new Document({

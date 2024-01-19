@@ -239,18 +239,18 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@orama/orama@2.0.0-beta.7", "@orama/orama@^2.0.0-beta.7":
-  version "2.0.0-beta.7"
-  resolved "https://registry.yarnpkg.com/@orama/orama/-/orama-2.0.0-beta.7.tgz#8d398517fc0a5b0f8af1d8346b3af72fae4e24f9"
-  integrity sha512-7JlCMVoqJ2QBZtJ7H1shYbiVnaJJf5M/LI/H+b/YUyop0wnYTNfi6bRHuGhEMqh8ACXkHPNs0IHkyCKz+mFIXg==
+"@orama/orama@2.0.1", "@orama/orama@^2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@orama/orama/-/orama-2.0.1.tgz#6fc6ff730e81befe30d23c3d9c164bc90b271678"
+  integrity sha512-9HUHToE93yvDGcmnEELNynG4kmzSrhSElnfLN9UFPO9ZwfHVPp1NvALli7rm1F/Bqdgi6YM6dEXKmPJUQnwiHg==
 
-"@orama/plugin-data-persistence@^2.0.0-beta.7":
-  version "2.0.0-beta.7"
-  resolved "https://registry.yarnpkg.com/@orama/plugin-data-persistence/-/plugin-data-persistence-2.0.0-beta.7.tgz#20effdf872b6901c0d51c640a9b420022e61a832"
-  integrity sha512-3Mv5CtaM0g6+KNEQc0hVhLwXwYKUfxpTAeA/k/Y4UBk2ug1ajgTj1fhAObspOzy5jMdBMUmQL3tujv9clYfjvQ==
+"@orama/plugin-data-persistence@^2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@orama/plugin-data-persistence/-/plugin-data-persistence-2.0.1.tgz#624db006dfd206c518566d8b472bda46c35ada83"
+  integrity sha512-DFcFeNKIDrkXz7Zu3WBHASBKcGYSIuK3iR1c3NrC2zNdAQIfr4CwbBj7yORHJo6gdI5JvcPI+zCi/FxQ+LIl5w==
   dependencies:
     "@msgpack/msgpack" "^2.7.2"
-    "@orama/orama" "2.0.0-beta.7"
+    "@orama/orama" "2.0.1"
     dpack "^0.6.22"
 
 "@tsconfig/node10@^1.0.7":

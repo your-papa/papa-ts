@@ -1,6 +1,6 @@
 {
     "name": "papa-ts",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "Backend for your Personal Assistant, powered by Private AI (aka PAPA)",
     "main": "dist/index",
     "types": "dist/index",
@@ -37,8 +37,8 @@
         "typescript": "^5.2.2"
     },
     "dependencies": {
-        "@orama/orama": "^2.0.0-beta.7",
-        "@orama/plugin-data-persistence": "^2.0.0-beta.7",
+        "@orama/orama": "^2.0.1",
+        "@orama/plugin-data-persistence": "^2.0.1",
         "dotenv": "^16.3.1",
         "fast-json-patch": "^3.1.1",
         "graphql": "^16.8.1",
