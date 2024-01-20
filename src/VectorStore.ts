@@ -3,6 +3,7 @@ import { Embeddings } from '@langchain/core/embeddings';
 import { VectorStore } from '@langchain/core/vectorstores';
 import { Orama, Results, TypedDocument, create, insertMultiple, removeMultiple, search } from '@orama/orama';
 import { persist, restore } from '@orama/plugin-data-persistence';
+import { _deepClone } from 'fast-json-patch/module/helpers';
 
 export interface OramaStoreArgs {
     indexName: string;
@@ -38,14 +39,12 @@ export class OramaStore extends VectorStore {
     }
 
     restoreDb(vectorStoreJson: string) {
-        console.log('Loading vector store from JSON');
         this.db = restore('json', vectorStoreJson);
+        this.db.then((db) => console.log('Loaded vector store from JSON', _deepClone(db.data.docs)));
     }
 
     async delete(filters: { ids: string[] }) {
-        // console.log('Removing documents', documents);
-        const removedIds = await removeMultiple(await this.db, filters.ids);
-        // console.log('Removed documents with ids', ids);
+        await removeMultiple(await this.db, filters.ids);
     }
 
     async addVectors(vectors: number[][], documents: Document[]) {

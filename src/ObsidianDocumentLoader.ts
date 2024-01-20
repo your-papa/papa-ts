@@ -1,11 +1,7 @@
 import { Document } from '@langchain/core/documents';
-import crypto from 'crypto';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { App, TFile } from 'obsidian';
-
-function hashString(inputString: string): string {
-    return crypto.createHash('sha1').update(inputString, 'utf-8').digest('hex');
-}
+import { hashString } from './Utils';
 
 // TODO create custom Document type
 
@@ -101,7 +97,7 @@ export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): 
             }
         }
     }
-    console.log('Loaded ' + docs.length + ' documents from Obsidian', docs);
+    console.log('Loaded ' + docs.length + ' documents from Obsidian');
 
     return docs;
 }

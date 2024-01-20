@@ -1,26 +1,20 @@
 import { Orama, TypedDocument, create, search, removeMultiple, updateMultiple } from '@orama/orama';
 import { persist, restore } from '@orama/plugin-data-persistence';
+import { _deepClone } from 'fast-json-patch/module/helpers';
 
 export interface OramaRecordManagerArgs {
     indexName: string;
 }
 
-export interface RecordManager {
-    getTime(): Promise<number>;
-    update(keys: string[], options?: ({ timeAtLeast?: number } & Record<string, unknown>) | undefined): Promise<void>;
-    exists(keys: string[]): Promise<boolean[]>;
-    listKeys(before: number, limit: number): Promise<string[]>;
-    deleteKeys(keys: string[]): Promise<void>;
-}
-
 const recordManagerSchema = {
     id: 'string',
-    updated_at: 'number',
+    hashed_filepath: 'string',
+    indexed_at: 'number',
 } as const;
 
-type RecordManagerDocument = TypedDocument<Orama<typeof recordManagerSchema>>;
+type VectorIndexRecord = TypedDocument<Orama<typeof recordManagerSchema>>;
 
-export class OramaRecordManager implements RecordManager {
+export class OramaRecordManager {
     private db: Promise<Orama<typeof recordManagerSchema>>;
 
     constructor(public args: OramaRecordManagerArgs) {
@@ -36,54 +30,45 @@ export class OramaRecordManager implements RecordManager {
         });
     }
 
-    async getTime(): Promise<number> {
-        return Date.now();
-    }
-
-    async update(keys: string[]): Promise<void> {
-        const updated_at = await this.getTime();
+    async update(records: VectorIndexRecord[]): Promise<void> {
         await updateMultiple(
             await this.db,
-            keys,
-            keys.map(
-                (key) =>
-                    ({
-                        id: key,
-                        updated_at,
-                    }) as RecordManagerDocument
-            )
+            records.map((record) => record.id),
+            records
         );
     }
 
-    async exists(keys: string[]): Promise<boolean[]> {
+    async exists(ids: string[]): Promise<boolean[]> {
         const results = await search(await this.db, {
             where: {
-                id: keys,
+                id: ids,
             },
-            limit: keys.length,
+            limit: ids.length,
         });
-        return keys.map((key) => results.hits.some((hit) => hit.document.id === key));
+        return ids.map((id) => results.hits.some((hit) => hit.document.id === id));
     }
 
-    async listKeys(before: number, limit: number): Promise<string[]> {
-        const results = await search(await this.db, {
-            where: {
-                updated_at: {
-                    lt: before,
-                },
-            },
-            limit,
-        });
+    async listKeys(before: number, limit: number, sources?: string[]): Promise<string[]> {
+        console.log('Searching for entries indexed before', before, 'in Oramadb', _deepClone((await this.db).data.docs));
+        let where;
+        if (sources) {
+            where = { hashed_filepath: sources, indexed_at: { lt: before } };
+        } else {
+            where = { indexed_at: { lt: before } };
+        }
+        const results = await search(await this.db, { where, limit });
+        console.log('Results', results);
         return results.hits.map((hit) => hit.document.id);
     }
 
     async deleteKeys(keys: string[]): Promise<void> {
         await removeMultiple(await this.db, keys);
+        console.log('Removed from RecordManager', _deepClone((await this.db).data.docs));
     }
 
     restoreDb(recordManagerJson: string) {
-        console.log('Loading record manager from JSON');
         this.db = restore('json', recordManagerJson);
+        this.db.then((db) => console.log('Loaded record manager from JSON', _deepClone(db.data.docs)));
     }
 
     async getJson(): Promise<string> {

@@ -13,8 +13,8 @@ import { OllamaGenModel, OpenAIEmbedModel, OpenAIGenModel, isOllamaGenModel, isO
 import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
 import { OramaStore } from './VectorStore';
+import { IndexingMode, index } from './Indexing';
 import { OramaRecordManager } from './RecordManager';
-import { index } from './Indexing';
 
 export interface PapaData {
     genModel: OllamaGenModel | OpenAIGenModel;
@@ -52,10 +52,9 @@ export class Papa {
         } else throw new Error('Invalid genModel');
     }
 
-    async embedDocuments(documents: Document[]) {
-        console.log('Embedding documents...');
-        await index(documents, this.recordManager, this.vectorStore);
-        console.log('Done embedding documents');
+    async embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {
+        console.log('Embedding documents in mode', indexingMode);
+        await index(documents, this.recordManager, this.vectorStore, indexingMode, 1000);
         if (this.saveHandler)
             this.saveHandler(
                 JSON.stringify({ VectorStore: JSON.parse(await this.vectorStore.getJson()), RecordManager: JSON.parse(await this.recordManager.getJson()) })

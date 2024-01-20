@@ -1,7 +1,8 @@
 import { Document } from '@langchain/core/documents';
 import { VectorStore } from '@langchain/core/vectorstores';
 
-import { RecordManager } from './RecordManager';
+import { OramaRecordManager } from './RecordManager';
+import { hashString } from './Utils';
 
 function batch<T>(size: number, iterable: T[]): T[][] {
     const batches: T[][] = [];
@@ -23,62 +24,68 @@ function batch<T>(size: number, iterable: T[]): T[][] {
     return batches;
 }
 
-function deduplicateInOrder(documents: Document[]): Document[] {
-    const seen = new Set<string>();
-    const deduplicated: Document[] = [];
+export type IndexingMode = 'full' | 'byFile';
 
-    for (const hashedDoc of documents) {
-        if (!hashedDoc.metadata.hash) {
-            throw new Error('Hashed document does not have a hash');
-        }
-
-        if (!seen.has(hashedDoc.metadata.hash)) {
-            seen.add(hashedDoc.metadata.hash);
-            deduplicated.push(hashedDoc);
-        }
-    }
-    return deduplicated;
-}
-
-export async function index(docs: Document[], recordManager: RecordManager, vectorStore: VectorStore, batchSize = 100) {
-    const indexStartDt = await recordManager.getTime();
+export async function index(
+    docs: Document[],
+    recordManager: OramaRecordManager,
+    vectorStore: VectorStore,
+    mode: IndexingMode = 'full',
+    batchSize = 100,
+    cleanupBatchSize = 1000
+) {
+    const indexStartDt = Date.now();
     let numAdded = 0;
     let numSkipped = 0;
+    let numDeleted = 0;
 
     const batches = batch(batchSize, docs);
 
     for (const batch of batches) {
-        const deduplicateDocs = deduplicateInOrder(batch);
-        numSkipped += batch.length - deduplicateDocs.length;
-
-        const batchExists = await recordManager.exists(deduplicateDocs.map((doc) => doc.metadata.hash));
+        const batchExists = await recordManager.exists(batch.map((doc) => doc.metadata.hash));
 
         const ids: string[] = [];
         const docsToIndex: Document[] = [];
-        const docsToUpdate: string[] = [];
-        for (let i = 0; i < deduplicateDocs.length; i++) {
-            const doc = deduplicateDocs[i];
+        for (let i = 0; i < batch.length; i++) {
+            const doc = batch[i];
             const docExists = batchExists[i];
             if (docExists) {
-                docsToUpdate.push(doc.metadata.hash);
+                numSkipped++;
                 continue;
             }
             ids.push(doc.metadata.hash);
             docsToIndex.push(doc);
         }
 
-        numSkipped += docsToUpdate.length;
-
         if (docsToIndex.length > 0) {
-            await vectorStore.addDocuments(docsToIndex, ids);
+            await vectorStore.addDocuments(docsToIndex);
             numAdded += docsToIndex.length;
         }
-
-        await recordManager.update(deduplicateDocs.map((doc) => doc.metadata.hash));
+        await recordManager.update(
+            batch.map((doc) => {
+                return { id: doc.metadata.hash, hashed_filepath: hashString(doc.metadata.filepath), indexed_at: Date.now() };
+            })
+        );
     }
-    const idsToDelete = await recordManager.listKeys(indexStartDt, docs.length);
-    await vectorStore.delete({ ids: idsToDelete });
-    await recordManager.deleteKeys(idsToDelete);
-
-    console.log(`Indexed ${numAdded} documents, skipped ${numSkipped} documents, deleted ${idsToDelete.length} documents`);
+    if (mode === 'byFile') {
+        while (true) {
+            const idsToDelete = await recordManager.listKeys(indexStartDt, cleanupBatchSize, [
+                ...new Set(docs.map((doc) => hashString(doc.metadata.filepath))),
+            ]);
+            if (idsToDelete.length === 0) break;
+            await vectorStore.delete({ ids: idsToDelete });
+            await recordManager.deleteKeys(idsToDelete);
+            numDeleted += idsToDelete.length;
+        }
+        console.log(`Indexed by File: Added ${numAdded} documents, skipped ${numSkipped} documents, deleted ${numDeleted} documents`);
+    } else if (mode === 'full') {
+        while (true) {
+            const idsToDelete = await recordManager.listKeys(indexStartDt, cleanupBatchSize);
+            if (idsToDelete.length === 0) break;
+            await vectorStore.delete({ ids: idsToDelete });
+            await recordManager.deleteKeys(idsToDelete);
+            numDeleted += idsToDelete.length;
+        }
+        console.log(`Indexed all: Added ${numAdded} documents, skipped ${numSkipped} documents, deleted ${numDeleted} documents`);
+    }
 }
