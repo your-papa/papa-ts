@@ -1,7 +1,7 @@
 import { Document } from '@langchain/core/documents';
 import { VectorStore } from '@langchain/core/vectorstores';
 
-import { OramaRecordManager } from './RecordManager';
+import { DexieRecordManager } from './RecordManager';
 import { hashString } from './Utils';
 
 function batch<T>(size: number, iterable: T[]): T[][] {
@@ -26,15 +26,8 @@ function batch<T>(size: number, iterable: T[]): T[][] {
 
 export type IndexingMode = 'full' | 'byFile';
 
-export async function index(
-    docs: Document[],
-    recordManager: OramaRecordManager,
-    vectorStore: VectorStore,
-    mode: IndexingMode = 'full',
-    batchSize = 100,
-    cleanupBatchSize = 1000
-) {
-    const indexStartDt = Date.now();
+export async function index(docs: Document[], recordManager: DexieRecordManager, vectorStore: VectorStore, mode: IndexingMode = 'full', batchSize = 100) {
+    const indexStartTime = Date.now();
     let numAdded = 0;
     let numSkipped = 0;
     let numDeleted = 0;
@@ -68,24 +61,16 @@ export async function index(
         );
     }
     if (mode === 'byFile') {
-        while (true) {
-            const idsToDelete = await recordManager.listKeys(indexStartDt, cleanupBatchSize, [
-                ...new Set(docs.map((doc) => hashString(doc.metadata.filepath))),
-            ]);
-            if (idsToDelete.length === 0) break;
-            await vectorStore.delete({ ids: idsToDelete });
-            await recordManager.deleteKeys(idsToDelete);
-            numDeleted += idsToDelete.length;
-        }
+        const idsToDelete = await recordManager.getIdsToDelete(indexStartTime, [...new Set(docs.map((doc) => hashString(doc.metadata.filepath)))]);
+        await vectorStore.delete({ ids: idsToDelete });
+        await recordManager.deleteIds(idsToDelete);
+        numDeleted += idsToDelete.length;
         console.log(`Indexed by File: Added ${numAdded} documents, skipped ${numSkipped} documents, deleted ${numDeleted} documents`);
     } else if (mode === 'full') {
-        while (true) {
-            const idsToDelete = await recordManager.listKeys(indexStartDt, cleanupBatchSize);
-            if (idsToDelete.length === 0) break;
-            await vectorStore.delete({ ids: idsToDelete });
-            await recordManager.deleteKeys(idsToDelete);
-            numDeleted += idsToDelete.length;
-        }
+        const idsToDelete = await recordManager.getIdsToDelete(indexStartTime);
+        await vectorStore.delete({ ids: idsToDelete });
+        await recordManager.deleteIds(idsToDelete);
+        numDeleted += idsToDelete.length;
         console.log(`Indexed all: Added ${numAdded} documents, skipped ${numSkipped} documents, deleted ${numDeleted} documents`);
     }
 }

@@ -1,77 +1,53 @@
-import { Orama, TypedDocument, create, search, removeMultiple, updateMultiple } from '@orama/orama';
-import { persist, restore } from '@orama/plugin-data-persistence';
-import { _deepClone } from 'fast-json-patch/module/helpers';
+import Dexie, { Table } from 'dexie';
 
-export interface OramaRecordManagerArgs {
-    indexName: string;
+interface VectorIndexRecord {
+    id: string;
+    hashed_filepath: string;
+    indexed_at: number;
 }
 
-const recordManagerSchema = {
-    id: 'string',
-    hashed_filepath: 'string',
-    indexed_at: 'number',
-} as const;
+export class DexieRecordManager extends Dexie {
+    private records: Table<VectorIndexRecord, string>;
 
-type VectorIndexRecord = TypedDocument<Orama<typeof recordManagerSchema>>;
-
-export class OramaRecordManager {
-    private db: Promise<Orama<typeof recordManagerSchema>>;
-
-    constructor(public args: OramaRecordManagerArgs) {
-        this.db = create({
-            schema: recordManagerSchema,
-            id: args.indexName,
-            components: {
-                tokenizer: {
-                    stemming: true,
-                    stemmerSkipProperties: ['id'],
-                },
-            },
+    constructor(public indexName: string) {
+        super(indexName);
+        this.version(1).stores({
+            records: 'id,hashed_filepath,indexed_at',
         });
+        this.records.clear();
     }
 
     async update(records: VectorIndexRecord[]): Promise<void> {
-        await updateMultiple(
-            await this.db,
-            records.map((record) => record.id),
-            records
-        );
+        await this.transaction('rw', this.records, async () => {
+            await this.records.bulkPut(records);
+        });
     }
 
     async exists(ids: string[]): Promise<boolean[]> {
-        const results = await search(await this.db, {
-            where: {
-                id: ids,
-            },
-            limit: ids.length,
-        });
-        return ids.map((id) => results.hits.some((hit) => hit.document.id === id));
+        const found = await this.records.where('id').anyOf(ids).toArray();
+        return ids.map((id) => found.some((record) => record.id === id));
     }
 
-    async listKeys(before: number, limit: number, sources?: string[]): Promise<string[]> {
-        console.log('Searching for entries indexed before', before, 'in Oramadb', _deepClone((await this.db).data.docs));
-        let where;
+    async getIdsToDelete(indexStartTime: number, sources?: string[]): Promise<string[]> {
+        let query = this.records.where('indexed_at').below(indexStartTime);
         if (sources) {
-            where = { hashed_filepath: sources, indexed_at: { lt: before } };
-        } else {
-            where = { indexed_at: { lt: before } };
+            query = query.and((record) => sources.includes(record.hashed_filepath));
         }
-        const results = await search(await this.db, { where, limit });
-        console.log('Results', results);
-        return results.hits.map((hit) => hit.document.id);
+        const results = await query.toArray();
+        return results.map((record) => record.id);
     }
 
-    async deleteKeys(keys: string[]): Promise<void> {
-        await removeMultiple(await this.db, keys);
-        console.log('Removed from RecordManager', _deepClone((await this.db).data.docs));
+    async deleteIds(ids: string[]): Promise<void> {
+        await this.records.bulkDelete(ids);
     }
 
-    restoreDb(recordManagerJson: string) {
-        this.db = restore('json', recordManagerJson);
-        this.db.then((db) => console.log('Loaded record manager from JSON', _deepClone(db.data.docs)));
+    async restoreDb(recordManagerJson: VectorIndexRecord[]) {
+        await this.transaction('rw', this.records, async () => {
+            await this.records.bulkPut(recordManagerJson);
+        });
     }
 
-    async getJson(): Promise<string> {
-        return (await persist(await this.db, 'json')) as string;
+    async getData(): Promise<VectorIndexRecord[]> {
+        return await this.records.toArray();
     }
 }

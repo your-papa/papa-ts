@@ -14,7 +14,7 @@ import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
 import { OramaStore } from './VectorStore';
 import { IndexingMode, index } from './Indexing';
-import { OramaRecordManager } from './RecordManager';
+import { DexieRecordManager } from './RecordManager';
 
 export interface PapaData {
     genModel: OllamaGenModel | OpenAIGenModel;
@@ -32,7 +32,7 @@ export class Papa {
     private saveHandler?: (vectorStoreJson: string) => void;
     private retriever: VectorStoreRetriever;
     private model: BaseChatModel;
-    private recordManager: OramaRecordManager;
+    private recordManager: DexieRecordManager;
 
     constructor(data: PapaData) {
         this.setGenModel(data.genModel);
@@ -41,7 +41,7 @@ export class Papa {
             indexName: 'VectorStore',
         });
         this.retriever = this.vectorStore.asRetriever({ k: 100 });
-        this.recordManager = new OramaRecordManager({ indexName: 'RecordManager' });
+        this.recordManager = new DexieRecordManager('RecordManager');
     }
 
     async setGenModel(genModel: OllamaGenModel | OpenAIGenModel) {
@@ -56,9 +56,7 @@ export class Papa {
         console.log('Embedding documents in mode', indexingMode);
         await index(documents, this.recordManager, this.vectorStore, indexingMode, 1000);
         if (this.saveHandler)
-            this.saveHandler(
-                JSON.stringify({ VectorStore: JSON.parse(await this.vectorStore.getJson()), RecordManager: JSON.parse(await this.recordManager.getJson()) })
-            );
+            this.saveHandler(JSON.stringify({ VectorStore: JSON.parse(await this.vectorStore.getJson()), RecordManager: await this.recordManager.getData() }));
     }
 
     async createTitleFromChatHistory(lang: Language, chatHistory: string) {
@@ -107,7 +105,7 @@ export class Papa {
 
     load(vectorStoreJson: string) {
         const { VectorStore, RecordManager } = JSON.parse(vectorStoreJson);
-        this.recordManager.restoreDb(JSON.stringify(RecordManager));
+        this.recordManager.restoreDb(RecordManager);
         this.vectorStore.restoreDb(JSON.stringify(VectorStore));
     }
 }
