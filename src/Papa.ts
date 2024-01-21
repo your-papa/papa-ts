@@ -61,6 +61,8 @@ export class Papa {
 
     async deleteDocuments(documents: Document[]) {
         unindex(documents, this.recordManager, this.vectorStore);
+        if (this.saveHandler)
+            this.saveHandler(JSON.stringify({ VectorStore: JSON.parse(await this.vectorStore.getJson()), RecordManager: await this.recordManager.getData() }));
     }
 
     async createTitleFromChatHistory(lang: Language, chatHistory: string) {
