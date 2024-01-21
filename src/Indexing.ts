@@ -61,15 +61,22 @@ export async function index(docs: Document[], recordManager: DexieRecordManager,
     }
     if (mode === 'byFile') {
         const idsToDelete = await recordManager.getIdsToDelete(indexStartTime, [...new Set(docs.map((doc) => doc.metadata.filepath))]);
-        await vectorStore.delete({ ids: idsToDelete });
-        await recordManager.deleteIds(idsToDelete);
+        vectorStore.delete({ ids: idsToDelete });
+        recordManager.deleteIds(idsToDelete);
         numDeleted += idsToDelete.length;
         console.log(`Indexed by File: Added ${numAdded} documents, skipped ${numSkipped} documents, deleted ${numDeleted} documents`);
     } else if (mode === 'full') {
         const idsToDelete = await recordManager.getIdsToDelete(indexStartTime);
-        await vectorStore.delete({ ids: idsToDelete });
-        await recordManager.deleteIds(idsToDelete);
+        vectorStore.delete({ ids: idsToDelete });
+        recordManager.deleteIds(idsToDelete);
         numDeleted += idsToDelete.length;
         console.log(`Indexed all: Added ${numAdded} documents, skipped ${numSkipped} documents, deleted ${numDeleted} documents`);
     }
+}
+
+export async function unindex(docs: Document[], recordManager: DexieRecordManager, vectorStore: VectorStore) {
+    const idsToDelete = docs.map((doc) => doc.metadata.hash);
+    vectorStore.delete({ ids: idsToDelete });
+    recordManager.deleteIds(idsToDelete);
+    console.log(`Deleted ${idsToDelete.length} documents`);
 }

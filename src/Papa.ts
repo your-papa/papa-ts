@@ -13,7 +13,7 @@ import { OllamaGenModel, OpenAIEmbedModel, OpenAIGenModel, isOllamaGenModel, isO
 import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
 import { OramaStore } from './VectorStore';
-import { IndexingMode, index } from './Indexing';
+import { IndexingMode, index, unindex } from './Indexing';
 import { DexieRecordManager } from './RecordManager';
 
 export interface PapaData {
@@ -57,6 +57,10 @@ export class Papa {
         await index(documents, this.recordManager, this.vectorStore, indexingMode, 1000);
         if (this.saveHandler)
             this.saveHandler(JSON.stringify({ VectorStore: JSON.parse(await this.vectorStore.getJson()), RecordManager: await this.recordManager.getData() }));
+    }
+
+    async deleteDocuments(documents: Document[]) {
+        unindex(documents, this.recordManager, this.vectorStore);
     }
 
     async createTitleFromChatHistory(lang: Language, chatHistory: string) {
