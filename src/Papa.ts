@@ -19,7 +19,6 @@ import { DexieRecordManager } from './RecordManager';
 export interface PapaData {
     genModel: OllamaGenModel | OpenAIGenModel;
     embedModel: OpenAIEmbedModel;
-    saveHandler?: (vectorStoreJson: string) => void;
 }
 
 export interface PapaResponse {
@@ -29,17 +28,14 @@ export interface PapaResponse {
 
 export class Papa {
     private vectorStore: OramaStore;
-    private saveHandler?: (vectorStoreJson: string) => void;
     private retriever: VectorStoreRetriever;
     private model: BaseChatModel;
     private recordManager: DexieRecordManager;
 
     constructor(data: PapaData) {
         this.setGenModel(data.genModel);
-        this.saveHandler = data.saveHandler;
-        this.vectorStore = new OramaStore(new OpenAIEmbeddings({ ...data.embedModel, batchSize: 2048 }), {
-            indexName: 'VectorStore',
-        });
+        this.vectorStore = new OramaStore(new OpenAIEmbeddings({ ...data.embedModel, batchSize: 2048 }), {});
+        this.vectorStore.create('VectorStore');
         this.retriever = this.vectorStore.asRetriever({ k: 100 });
         this.recordManager = new DexieRecordManager('RecordManager');
     }
@@ -55,14 +51,10 @@ export class Papa {
     async embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {
         console.log('Embedding documents in mode', indexingMode);
         await index(documents, this.recordManager, this.vectorStore, indexingMode, 1000);
-        if (this.saveHandler)
-            this.saveHandler(JSON.stringify({ VectorStore: JSON.parse(await this.vectorStore.getJson()), RecordManager: await this.recordManager.getData() }));
     }
 
     async deleteDocuments(documents: Document[]) {
         unindex(documents, this.recordManager, this.vectorStore);
-        if (this.saveHandler)
-            this.saveHandler(JSON.stringify({ VectorStore: JSON.parse(await this.vectorStore.getJson()), RecordManager: await this.recordManager.getData() }));
     }
 
     async createTitleFromChatHistory(lang: Language, chatHistory: string) {
@@ -109,9 +101,13 @@ export class Papa {
         }
     }
 
-    load(vectorStoreJson: string) {
+    async load(vectorStoreJson: string) {
         const { VectorStore, RecordManager } = JSON.parse(vectorStoreJson);
-        this.recordManager.restoreDb(RecordManager);
-        this.vectorStore.restoreDb(JSON.stringify(VectorStore));
+        await this.recordManager.restore(RecordManager);
+        await this.vectorStore.restore(JSON.stringify(VectorStore));
+    }
+
+    async getData() {
+        return JSON.stringify({ VectorStore: JSON.parse(await this.vectorStore.getJson()), RecordManager: await this.recordManager.getData() });
     }
 }

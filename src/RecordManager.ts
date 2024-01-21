@@ -41,7 +41,7 @@ export class DexieRecordManager extends Dexie {
         await this.records.bulkDelete(ids);
     }
 
-    async restoreDb(recordManagerJson: VectorIndexRecord[]) {
+    async restore(recordManagerJson: VectorIndexRecord[]) {
         await this.transaction('rw', this.records, async () => {
             await this.records.bulkPut(recordManagerJson);
         });
