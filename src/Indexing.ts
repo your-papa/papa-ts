@@ -2,7 +2,6 @@ import { Document } from '@langchain/core/documents';
 import { VectorStore } from '@langchain/core/vectorstores';
 
 import { DexieRecordManager } from './RecordManager';
-import { hashString } from './Utils';
 
 function batch<T>(size: number, iterable: T[]): T[][] {
     const batches: T[][] = [];
@@ -56,12 +55,12 @@ export async function index(docs: Document[], recordManager: DexieRecordManager,
         }
         await recordManager.update(
             batch.map((doc) => {
-                return { id: doc.metadata.hash, hashed_filepath: hashString(doc.metadata.filepath), indexed_at: Date.now() };
+                return { id: doc.metadata.hash, filepath: doc.metadata.filepath, indexed_at: Date.now() };
             })
         );
     }
     if (mode === 'byFile') {
-        const idsToDelete = await recordManager.getIdsToDelete(indexStartTime, [...new Set(docs.map((doc) => hashString(doc.metadata.filepath)))]);
+        const idsToDelete = await recordManager.getIdsToDelete(indexStartTime, [...new Set(docs.map((doc) => doc.metadata.filepath))]);
         await vectorStore.delete({ ids: idsToDelete });
         await recordManager.deleteIds(idsToDelete);
         numDeleted += idsToDelete.length;

@@ -1,7 +1,11 @@
 import { Document } from '@langchain/core/documents';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { App, TFile } from 'obsidian';
-import { hashString } from './Utils';
+import crypto from 'crypto';
+
+export function hashString(inputString: string): string {
+    return crypto.createHash('sha1').update(inputString, 'utf-8').digest('hex');
+}
 
 // TODO create custom Document type
 

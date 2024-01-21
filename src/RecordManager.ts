@@ -2,7 +2,7 @@ import Dexie, { Table } from 'dexie';
 
 interface VectorIndexRecord {
     id: string;
-    hashed_filepath: string;
+    filepath: string;
     indexed_at: number;
 }
 
@@ -12,7 +12,7 @@ export class DexieRecordManager extends Dexie {
     constructor(public indexName: string) {
         super(indexName);
         this.version(1).stores({
-            records: 'id,hashed_filepath,indexed_at',
+            records: 'id,filepath,indexed_at',
         });
         this.records.clear();
     }
@@ -31,7 +31,7 @@ export class DexieRecordManager extends Dexie {
     async getIdsToDelete(indexStartTime: number, sources?: string[]): Promise<string[]> {
         let query = this.records.where('indexed_at').below(indexStartTime);
         if (sources) {
-            query = query.and((record) => sources.includes(record.hashed_filepath));
+            query = query.and((record) => sources.includes(record.filepath));
         }
         const results = await query.toArray();
         return results.map((record) => record.id);
