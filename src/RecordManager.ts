@@ -45,6 +45,7 @@ export class DexieRecordManager extends Dexie {
         await this.transaction('rw', this.records, async () => {
             await this.records.bulkPut(recordManagerJson);
         });
+        console.log('Restored recordManager from json backup', await this.records.toArray());
     }
 
     async getData(): Promise<VectorIndexRecord[]> {

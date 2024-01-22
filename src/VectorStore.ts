@@ -39,6 +39,7 @@ export class OramaStore extends VectorStore {
 
     async restore(vectorStoreJsonBackup: string) {
         this.db = await restore('json', vectorStoreJsonBackup);
+        console.log('Restored vectorstore from json backup', this.db.data.docs);
     }
 
     async delete(filters: { ids: string[] }) {

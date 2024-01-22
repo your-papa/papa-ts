@@ -14,8 +14,6 @@ export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): 
     for (const file of files) {
         const fileMetadata = obsidianApp.metadataCache.getFileCache(file);
         if (!fileMetadata) continue;
-        //
-        // TODO why is seperator only added to the next chunk?
         // Keep in mind that chunksize is not token size but character size
         const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 2000, chunkOverlap: 0, separators: ['\n', '. ', '? ', '! ', ' ', ''] });
 
@@ -66,7 +64,17 @@ export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): 
                 continue;
             } else if (section.type === 'paragraph') {
                 const splitParagraph = await splitter.splitText(sectionContent);
-                for (const paragraph of splitParagraph) {
+                for (let i = 0; i < splitParagraph.length; i++) {
+                    // this is done becuase seperator is only added to the next chunk for whatever reason
+                    let splittedByChar = '';
+                    if (
+                        splitParagraph[i + 1] &&
+                        (splitParagraph[i + 1].charAt(0) === '.' || splitParagraph[i + 1].charAt(0) === '?' || splitParagraph[i + 1].charAt(0) === '!')
+                    ) {
+                        splittedByChar = splitParagraph[i + 1].charAt(0);
+                        splitParagraph[i + 1] = splitParagraph[i + 1].slice(1).trim();
+                    }
+                    const paragraph = splitParagraph[i] + splittedByChar;
                     const id = file.path + headingTree.join('') + ' ID' + docCount;
                     const pageContent = 'Note Path: ' + file.path + '\n' + headingTree.join('\n') + '\n' + paragraph;
                     docs.push({
