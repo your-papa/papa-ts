@@ -31,7 +31,7 @@ Zusammenfassung:`
 
         rag: PromptTemplate.fromTemplate(
             `Als mein Assistent, bitte antworte auf meine Frage, wobei du ausschließlich auf mein vorhandenes Wissen aus Obsidian zurückgreifst.
-Achte darauf, die Markdown-Formatierung zu verwenden und deiner Antwort, die im Wissen hinterlegten Wikilinks als Referenz (e.g. [[<Note>]]) hinzu zufügen. 
+Achte darauf, die Markdown-Formatierung zu verwenden und deiner Antwort, die im Wissen hinterlegten Wikilinks als Referenz (e.g. [[<Note Path>]]) hinzu zufügen. 
 ------------
 Mein Wissen:
 {context}

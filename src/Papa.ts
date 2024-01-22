@@ -91,9 +91,9 @@ export class Papa {
             if (!alreadyRetrieved && pipeOutput.logs.Retrieving) {
                 alreadyRetrieved = true;
                 sbResponse = { status: 'Retrieving', content: 'Retrieving...' };
-            } else if (!alreadyReduced && pipeOutput.logs.PPDocs && pipeOutput.logs.PPDocs.final_output) {
+            } else if (!alreadyReduced && pipeOutput.logs.PPDocs && pipeOutput.logs.PPDocs.final_output && pipeOutput.logs.PPDocs.final_output.needsReduce) {
                 alreadyReduced = true;
-                sbResponse = { status: 'Reducing', content: 'Reducing... ' + pipeOutput.logs.PPDocs.final_output.output.length + ' notes' };
+                sbResponse = { status: 'Reducing', content: 'Reducing ' + pipeOutput.logs.PPDocs.final_output.notes.length + ' notes...' };
             } else if (pipeOutput.streamed_output.join('') !== '') {
                 sbResponse = { status: 'Generating', content: pipeOutput.streamed_output.join('') };
             }

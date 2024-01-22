@@ -88,28 +88,30 @@ function getDocsPostProcessor(model: BaseChatModel, pipeInput: PipeInput) {
             const hasMultipleParts = splitedContents.length > 1;
             splitedContents.forEach((contents, i) => {
                 let content = '';
-                content += '\n\n------\n';
-                content += 'Note Path:' + filepath.replace('.md', '') + (hasMultipleParts && ' Part ' + (i + 1)) + '\n';
+                content += '------\n';
+                content += 'Note Path: ' + filepath.replace('.md', '') + (hasMultipleParts ? ' Part ' + (i + 1) : '') + '\n';
                 content += contents.join('\n\n');
                 processedDocuments.push(content);
             });
         }
+
+        const needsReduce = (await model.getNumTokens(processedDocuments.join('\n\n'))) > tokenMax;
         console.log('Postprocessed Docs', processedDocuments);
-        return processedDocuments;
+        return { notes: processedDocuments, needsReduce };
     };
 }
 
 function getDocsReducePipe(model: BaseChatModel, pipeInput: PipeInput) {
     return async (
-        notesContent: string[],
+        postProcessedResult: { notes: string[]; needsReduce: boolean },
         options?: {
             config?: BaseCallbackConfig;
         }
     ) => {
+        if (!postProcessedResult.needsReduce) return postProcessedResult.notes.join('\n\n');
         const editableConfig = options?.config;
-        let contents = notesContent;
+        let contents = postProcessedResult.notes;
         let reduceCount = 0;
-        let numTokens = 0;
 
         // 4097 max but not working that well
         const tokenMax =
@@ -129,9 +131,8 @@ function getDocsReducePipe(model: BaseChatModel, pipeInput: PipeInput) {
             ]);
             contents = await Promise.all(splitedContents.map((contents) => reduceChain.invoke(contents.join('\n\n'))));
             console.log('Reduced Docs', contents);
-            numTokens = await model.getNumTokens(contents.join('\n\n'));
             reduceCount += 1;
-        } while (numTokens > tokenMax);
+        } while ((await model.getNumTokens(contents.join('\n\n'))) > tokenMax);
         return contents.join('\n\n');
     };
 }

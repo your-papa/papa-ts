@@ -71,7 +71,7 @@ export class OramaStore extends VectorStore {
             mode: 'vector',
             vector: { value: query, property: 'embedding' },
             limit: k,
-            similarity: 0.8,
+            similarity: 0.75,
         });
         return results.hits.map((result) => {
             return [
