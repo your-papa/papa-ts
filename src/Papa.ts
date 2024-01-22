@@ -50,7 +50,7 @@ export class Papa {
 
     async embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {
         console.log('Embedding documents in mode', indexingMode);
-        await index(documents, this.recordManager, this.vectorStore, indexingMode, 1000);
+        return await index(documents, this.recordManager, this.vectorStore, indexingMode, 1000);
     }
 
     async deleteDocuments(documents: Document[]) {
@@ -103,8 +103,7 @@ export class Papa {
 
     async load(vectorStoreJson: string) {
         const { VectorStore, RecordManager } = JSON.parse(vectorStoreJson);
-        await this.recordManager.restore(RecordManager);
-        await this.vectorStore.restore(JSON.stringify(VectorStore));
+        await Promise.all([this.recordManager.restore(RecordManager), this.vectorStore.restore(JSON.stringify(VectorStore))]);
     }
 
     async getData() {

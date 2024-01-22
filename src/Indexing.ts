@@ -72,6 +72,7 @@ export async function index(docs: Document[], recordManager: DexieRecordManager,
         numDeleted += idsToDelete.length;
         console.log(`Indexed all: Added ${numAdded} documents, skipped ${numSkipped} documents, deleted ${numDeleted} documents`);
     }
+    return { numAdded, numSkipped, numDeleted };
 }
 
 export async function unindex(docs: Document[], recordManager: DexieRecordManager, vectorStore: VectorStore) {
