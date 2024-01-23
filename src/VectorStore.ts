@@ -2,7 +2,6 @@ import { Document } from '@langchain/core/documents';
 import { Embeddings } from '@langchain/core/embeddings';
 import { VectorStore } from '@langchain/core/vectorstores';
 import { Orama, Results, TypedDocument, create, insertMultiple, removeMultiple, search } from '@orama/orama';
-import { persist, restore } from '@orama/plugin-data-persistence';
 import { _deepClone } from 'fast-json-patch/module/helpers';
 
 const vectorStoreSchema = {
@@ -14,7 +13,7 @@ const vectorStoreSchema = {
     embedding: 'vector[1536]',
 } as const;
 
-type VectorDocument = TypedDocument<Orama<typeof vectorStoreSchema>>;
+export type VectorDocument = TypedDocument<Orama<typeof vectorStoreSchema>>;
 
 export class OramaStore extends VectorStore {
     private db: Orama<typeof vectorStoreSchema>;
@@ -37,10 +36,13 @@ export class OramaStore extends VectorStore {
         });
     }
 
-    async restore(vectorStoreJsonBackup: string) {
-        console.log('Restoring vectorstore from json backup');
-        this.db = await restore('json', vectorStoreJsonBackup);
-        console.log('Restored vectorstore from json backup', this.db.data.docs);
+    async restore(vectorStoreBackup: VectorDocument[]) {
+        console.log('Restoring vectorstore from backup');
+        // vectorStoreBackup is an object and not an array for some reason
+        const docs = Object.keys(vectorStoreBackup).map((key) => vectorStoreBackup[key]);
+        await this.create('VectorStore');
+        await insertMultiple(this.db, docs);
+        console.log('Restored vectorstore from backup', this.db.data.docs);
     }
 
     async delete(filters: { ids: string[] }) {
@@ -84,7 +86,7 @@ export class OramaStore extends VectorStore {
         });
     }
 
-    async getJson(): Promise<string> {
-        return (await persist(this.db, 'json')) as string;
+    async getData(): Promise<VectorDocument[]> {
+        return this.db.data.docs.docs as VectorDocument[];
     }
 }

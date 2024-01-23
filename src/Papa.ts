@@ -8,13 +8,14 @@ import { StringOutputParser } from '@langchain/core/output_parsers';
 import { VectorStoreRetriever } from '@langchain/core/vectorstores';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { applyPatch } from 'fast-json-patch';
+import { encode, decode } from '@msgpack/msgpack';
 
 import { OllamaGenModel, OpenAIEmbedModel, OpenAIGenModel, isOllamaGenModel, isOpenAIGenModel } from './Models';
 import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
-import { OramaStore } from './VectorStore';
+import { OramaStore, VectorDocument } from './VectorStore';
 import { IndexingMode, index, unindex } from './Indexing';
-import { DexieRecordManager } from './RecordManager';
+import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
 
 export interface PapaData {
     genModel: OllamaGenModel | OpenAIGenModel;
@@ -101,12 +102,15 @@ export class Papa {
         }
     }
 
-    async load(vectorStoreJson: string) {
-        const { VectorStore, RecordManager } = JSON.parse(vectorStoreJson);
-        await Promise.all([this.recordManager.restore(RecordManager), this.vectorStore.restore(JSON.stringify(VectorStore))]);
+    async load(vectorStoreBackup: ArrayBuffer) {
+        const { VectorStore, RecordManager } = decode(vectorStoreBackup) as { VectorStore: VectorDocument[]; RecordManager: VectorIndexRecord[] };
+        await Promise.all([this.vectorStore.restore(VectorStore), this.recordManager.restore(RecordManager)]);
     }
 
-    async getData() {
-        return JSON.stringify({ VectorStore: JSON.parse(await this.vectorStore.getJson()), RecordManager: await this.recordManager.getData() });
+    async getData(): Promise<ArrayBuffer> {
+        return encode({
+            VectorStore: await this.vectorStore.getData(),
+            RecordManager: await this.recordManager.getData(),
+        });
     }
 }

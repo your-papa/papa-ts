@@ -1,6 +1,6 @@
 {
     "name": "papa-ts",
-    "version": "0.1.2",
+    "version": "0.1.5",
     "description": "Backend for your Personal Assistant, powered by Private AI (aka PAPA)",
     "main": "dist/index",
     "types": "dist/index",
@@ -37,6 +37,7 @@
         "typescript": "^5.2.2"
     },
     "dependencies": {
+        "@msgpack/msgpack": "^3.0.0-beta2",
         "@orama/orama": "^2.0.1",
         "@orama/plugin-data-persistence": "^2.0.1",
         "dexie": "^3.2.4",

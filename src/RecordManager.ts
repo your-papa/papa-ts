@@ -1,6 +1,6 @@
 import Dexie, { Table } from 'dexie';
 
-interface VectorIndexRecord {
+export interface VectorIndexRecord {
     id: string;
     filepath: string;
     indexed_at: number;
@@ -41,12 +41,12 @@ export class DexieRecordManager extends Dexie {
         await this.records.bulkDelete(ids);
     }
 
-    async restore(recordManagerJson: VectorIndexRecord[]) {
-        console.log('Restoring recordManager from json backup', recordManagerJson);
+    async restore(recordManagerBackup: VectorIndexRecord[]) {
+        console.log('Restoring recordManager from backup');
         await this.transaction('rw', this.records, async () => {
-            await this.records.bulkPut(recordManagerJson);
+            await this.records.bulkPut(recordManagerBackup);
         });
-        console.log('Restored recordManager from json backup');
+        console.log('Restored recordManager from backup', { records: await this.records.toArray() });
     }
 
     async getData(): Promise<VectorIndexRecord[]> {
