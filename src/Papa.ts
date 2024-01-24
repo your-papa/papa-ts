@@ -1,7 +1,6 @@
 import { ChatOllama } from '@langchain/community/chat_models/ollama';
 import { Document } from '@langchain/core/documents';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import { Serialized } from '@langchain/core/load/serializable';
 import { RunLogPatch } from '@langchain/core/tracers/log_stream';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
@@ -11,7 +10,16 @@ import { applyPatch } from 'fast-json-patch';
 import { encode, decode } from '@msgpack/msgpack';
 import { OllamaEmbeddings } from 'langchain/embeddings/ollama';
 
-import { OllamaEmbedModel, OllamaGenModel, OpenAIEmbedModel, OpenAIGenModel, isOllamaGenModel, isOpenAIGenModel } from './Models';
+import {
+    OllamaEmbedModel,
+    OllamaGenModel,
+    OpenAIEmbedModel,
+    OpenAIGenModel,
+    isOllamaEmbedModel,
+    isOllamaGenModel,
+    isOpenAIEmbedModel,
+    isOpenAIGenModel,
+} from './Models';
 import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
 import { OramaStore, VectorDocument } from './VectorStore';
@@ -43,12 +51,11 @@ export class Papa {
     }
 
     setEmbedModel(embedModel: OllamaEmbedModel | OpenAIEmbedModel) {
-        console.log('setEmbedModel', embedModel);
-        if (isOpenAIGenModel(embedModel)) {
+        if (isOpenAIEmbedModel(embedModel)) {
             this.vectorStore = new OramaStore(new OpenAIEmbeddings({ ...embedModel, batchSize: 2048 }), {});
-        } else if (isOllamaGenModel(embedModel)) {
+        } else if (isOllamaEmbedModel(embedModel)) {
             this.vectorStore = new OramaStore(new OllamaEmbeddings(embedModel), {});
-        } else throw new Error('Invalid genModel');
+        } else throw new Error('Invalid embedModel');
     }
 
     async setGenModel(genModel: OllamaGenModel | OpenAIGenModel) {
@@ -74,21 +81,9 @@ export class Papa {
 
     run(input: PipeInput) {
         console.log('Running RAG... Input:', input);
-        const pipeOptions = {
-            callbacks: [
-                {
-                    handleLLMStart: async (llm: Serialized, prompts: string[]) => {
-                        console.log(prompts[0]);
-                    },
-                    handleLLMError: async (err: Error) => {
-                        console.error(err);
-                    },
-                },
-            ],
-        };
         return input.isRAG
-            ? this._streamProcessor(createRagPipe(this.retriever, this.model, input).streamLog(input, pipeOptions))
-            : this._streamProcessor(createConversationPipe(this.model, input).streamLog(input, pipeOptions));
+            ? this._streamProcessor(createRagPipe(this.retriever, this.model, input).streamLog(input))
+            : this._streamProcessor(createConversationPipe(this.model, input).streamLog(input));
     }
 
     async *_streamProcessor(responseStream: AsyncGenerator<RunLogPatch>): AsyncGenerator<PapaResponse> {
