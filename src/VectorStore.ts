@@ -22,10 +22,7 @@ export class OramaStore extends VectorStore {
         return 'OramaStore';
     }
 
-    constructor(
-        public embeddings: Embeddings,
-        args: Record<string, any>
-    ) {
+    constructor(public embeddings: Embeddings, args: Record<string, any>) {
         super(embeddings, args);
     }
 

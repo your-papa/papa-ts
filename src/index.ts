@@ -2,15 +2,18 @@ import { Papa, PapaData } from './Papa';
 import { obsidianDocumentLoader } from './ObsidianDocumentLoader';
 import { Language, Languages } from './Prompts';
 import {
+    OpenAIGenModel,
     OpenAIGenModels,
     OpenAIGenModelNames,
+    OpenAIEmbedModel,
     OpenAIEmbedModels,
     OpenAIEmbedModelNames,
+    OllamaGenModel,
     OllamaGenModels,
     OllamaGenModelNames,
-    OpenAIGenModel,
-    OllamaGenModel,
-    OpenAIEmbedModel,
+    OllamaEmbedModel,
+    OllamaEmbedModels,
+    OllamaEmbedModelNames,
 } from './Models';
 
 export {
@@ -19,13 +22,16 @@ export {
     obsidianDocumentLoader,
     Language,
     Languages,
+    OpenAIGenModel,
     OpenAIGenModels,
     OpenAIGenModelNames,
-    OpenAIGenModel,
+    OpenAIEmbedModel,
     OpenAIEmbedModels,
     OpenAIEmbedModelNames,
-    OpenAIEmbedModel,
+    OllamaGenModel,
     OllamaGenModels,
     OllamaGenModelNames,
-    OllamaGenModel,
+    OllamaEmbedModel,
+    OllamaEmbedModels,
+    OllamaEmbedModelNames,
 };

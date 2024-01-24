@@ -9,8 +9,9 @@ import { VectorStoreRetriever } from '@langchain/core/vectorstores';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { applyPatch } from 'fast-json-patch';
 import { encode, decode } from '@msgpack/msgpack';
+import { OllamaEmbeddings } from 'langchain/embeddings/ollama';
 
-import { OllamaGenModel, OpenAIEmbedModel, OpenAIGenModel, isOllamaGenModel, isOpenAIGenModel } from './Models';
+import { OllamaEmbedModel, OllamaGenModel, OpenAIEmbedModel, OpenAIGenModel, isOllamaGenModel, isOpenAIGenModel } from './Models';
 import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
 import { OramaStore, VectorDocument } from './VectorStore';
@@ -19,7 +20,7 @@ import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
 
 export interface PapaData {
     genModel: OllamaGenModel | OpenAIGenModel;
-    embedModel: OpenAIEmbedModel;
+    embedModel: OllamaEmbedModel | OpenAIEmbedModel;
 }
 
 export interface PapaResponse {
@@ -35,10 +36,19 @@ export class Papa {
 
     constructor(data: PapaData) {
         this.setGenModel(data.genModel);
-        this.vectorStore = new OramaStore(new OpenAIEmbeddings({ ...data.embedModel, batchSize: 2048 }), {});
+        this.setEmbedModel(data.embedModel);
         this.vectorStore.create('VectorStore');
         this.retriever = this.vectorStore.asRetriever({ k: 100 });
         this.recordManager = new DexieRecordManager('RecordManager');
+    }
+
+    setEmbedModel(embedModel: OllamaEmbedModel | OpenAIEmbedModel) {
+        console.log('setEmbedModel', embedModel);
+        if (isOpenAIGenModel(embedModel)) {
+            this.vectorStore = new OramaStore(new OpenAIEmbeddings({ ...embedModel, batchSize: 2048 }), {});
+        } else if (isOllamaGenModel(embedModel)) {
+            this.vectorStore = new OramaStore(new OllamaEmbeddings(embedModel), {});
+        } else throw new Error('Invalid genModel');
     }
 
     async setGenModel(genModel: OllamaGenModel | OpenAIGenModel) {
