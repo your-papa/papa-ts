@@ -1,15 +1,18 @@
 import { ChatOllama } from '@langchain/community/chat_models/ollama';
 import { Document } from '@langchain/core/documents';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import { RunLogPatch } from '@langchain/core/tracers/log_stream';
-import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
+import { RunnableSequence } from '@langchain/core/runnables';
+import { RunLogPatch } from '@langchain/core/tracers/log_stream';
 import { VectorStoreRetriever } from '@langchain/core/vectorstores';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
+import { decode, encode } from '@msgpack/msgpack';
 import { applyPatch } from 'fast-json-patch';
-import { encode, decode } from '@msgpack/msgpack';
 import { OllamaEmbeddings } from 'langchain/embeddings/ollama';
+import { LangChainTracer } from 'langchain/callbacks';
 
+import { IndexingMode, index, unindex } from './Indexing';
+import { getTracer } from './Langsmith';
 import {
     OllamaEmbedModel,
     OllamaGenModel,
@@ -22,13 +25,13 @@ import {
 } from './Models';
 import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
-import { OramaStore, VectorDocument } from './VectorStore';
-import { IndexingMode, index, unindex } from './Indexing';
 import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
+import { OramaStore, VectorDocument } from './VectorStore';
 
 export interface PapaData {
     genModel: OllamaGenModel | OpenAIGenModel;
     embedModel: OllamaEmbedModel | OpenAIEmbedModel;
+    langsmithApiKey?: string;
 }
 
 export interface PapaResponse {
@@ -41,6 +44,7 @@ export class Papa {
     private retriever: VectorStoreRetriever;
     private model: BaseChatModel;
     private recordManager: DexieRecordManager;
+    private tracer?: LangChainTracer;
 
     constructor(data: PapaData) {
         this.setGenModel(data.genModel);
@@ -48,6 +52,7 @@ export class Papa {
         this.vectorStore.create('VectorStore');
         this.retriever = this.vectorStore.asRetriever({ k: 100 });
         this.recordManager = new DexieRecordManager('RecordManager');
+        if (data.langsmithApiKey) this.tracer = getTracer(data.langsmithApiKey);
     }
 
     setEmbedModel(embedModel: OllamaEmbedModel | OpenAIEmbedModel) {
@@ -82,8 +87,8 @@ export class Papa {
     run(input: PipeInput) {
         console.log('Running RAG... Input:', input);
         return input.isRAG
-            ? this._streamProcessor(createRagPipe(this.retriever, this.model, input).streamLog(input))
-            : this._streamProcessor(createConversationPipe(this.model, input).streamLog(input));
+            ? this._streamProcessor(createRagPipe(this.retriever, this.model, input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined))
+            : this._streamProcessor(createConversationPipe(this.model, input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined));
     }
 
     async *_streamProcessor(responseStream: AsyncGenerator<RunLogPatch>): AsyncGenerator<PapaResponse> {
