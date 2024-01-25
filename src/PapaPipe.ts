@@ -26,12 +26,12 @@ export function createRagPipe(retriever: VectorStoreRetriever, model: BaseChatMo
                     .pipe(getDocsPostProcessor(model, input))
                     .withConfig({ runName: 'PPDocs' })
                     .pipe(getDocsReducePipe(model, input)),
-            ]),
+            ]).withConfig({ runName: 'Retrieving Notes' }),
         },
         Prompts[input.lang].rag,
         model,
         new StringOutputParser(),
-    ]);
+    ]).withConfig({ runName: 'RAG Chat Pipe' });
     return ragChain;
 }
 
@@ -44,7 +44,7 @@ export function createConversationPipe(model: BaseChatModel, input: PipeInput) {
         Prompts[input.lang].conversation,
         model,
         new StringOutputParser(),
-    ]);
+    ]).withConfig({ runName: 'Normal Chat Pipe' });
     return conversationChain;
 }
 

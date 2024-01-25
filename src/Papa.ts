@@ -71,8 +71,8 @@ export class Papa {
         return await index(documents, this.recordManager, this.vectorStore, indexingMode, 1000);
     }
 
-    async deleteDocuments(documents: Document[]) {
-        unindex(documents, this.recordManager, this.vectorStore);
+    async deleteDocuments(basedOn: { docs?: Document[]; sources?: string[] }) {
+        await unindex(basedOn, this.recordManager, this.vectorStore);
     }
 
     async createTitleFromChatHistory(lang: Language, chatHistory: string) {

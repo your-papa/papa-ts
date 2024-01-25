@@ -28,12 +28,19 @@ export class DexieRecordManager extends Dexie {
         return ids.map((id) => found.some((record) => record.id === id));
     }
 
-    async getIdsToDelete(indexStartTime: number, sources?: string[]): Promise<string[]> {
-        let query = this.records.where('indexed_at').below(indexStartTime);
-        if (sources) {
-            query = query.and((record) => sources.includes(record.filepath));
+    async getIdsToDelete(filters: { indexStartTime?: number; sources?: string[] }): Promise<string[]> {
+        let results: VectorIndexRecord[] = [];
+        if (filters.indexStartTime && filters.sources && filters.sources.length > 0) {
+            results = await this.records
+                .where('indexed_at')
+                .below(filters.indexStartTime)
+                .and((record) => filters.sources!.includes(record.filepath))
+                .toArray();
+        } else if (filters.indexStartTime) {
+            results = await this.records.where('indexed_at').below(filters.indexStartTime).toArray();
+        } else if (filters.sources) {
+            results = await this.records.where('filepath').anyOf(filters.sources).toArray();
         }
-        const results = await query.toArray();
         return results.map((record) => record.id);
     }
 

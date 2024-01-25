@@ -60,24 +60,29 @@ export async function index(docs: Document[], recordManager: DexieRecordManager,
         );
     }
     if (mode === 'byFile') {
-        const idsToDelete = await recordManager.getIdsToDelete(indexStartTime, [...new Set(docs.map((doc) => doc.metadata.filepath))]);
-        vectorStore.delete({ ids: idsToDelete });
-        recordManager.deleteIds(idsToDelete);
+        const idsToDelete = await recordManager.getIdsToDelete({ indexStartTime, sources: [...new Set(docs.map((doc) => doc.metadata.filepath))] });
+        await Promise.all([vectorStore.delete({ ids: idsToDelete }), recordManager.deleteIds(idsToDelete)]);
         numDeleted += idsToDelete.length;
         console.log(`Indexed by File: Added ${numAdded} documents, skipped ${numSkipped} documents, deleted ${numDeleted} documents`);
     } else if (mode === 'full') {
-        const idsToDelete = await recordManager.getIdsToDelete(indexStartTime);
-        vectorStore.delete({ ids: idsToDelete });
-        recordManager.deleteIds(idsToDelete);
+        const idsToDelete = await recordManager.getIdsToDelete({ indexStartTime });
+        await Promise.all([vectorStore.delete({ ids: idsToDelete }), recordManager.deleteIds(idsToDelete)]);
         numDeleted += idsToDelete.length;
         console.log(`Indexed all: Added ${numAdded} documents, skipped ${numSkipped} documents, deleted ${numDeleted} documents`);
     }
     return { numAdded, numSkipped, numDeleted };
 }
 
-export async function unindex(docs: Document[], recordManager: DexieRecordManager, vectorStore: VectorStore) {
-    const idsToDelete = docs.map((doc) => doc.metadata.hash);
-    vectorStore.delete({ ids: idsToDelete });
-    recordManager.deleteIds(idsToDelete);
-    console.log(`Deleted ${idsToDelete.length} documents`);
+export async function unindex(basedOn: { docs?: Document[]; sources?: string[] }, recordManager: DexieRecordManager, vectorStore: VectorStore) {
+    if (basedOn.sources) {
+        const idsToDelete = await recordManager.getIdsToDelete({ sources: basedOn.sources });
+        await Promise.all([vectorStore.delete({ ids: idsToDelete }), recordManager.deleteIds(idsToDelete)]);
+        console.log(`Deleted ${idsToDelete.length} documents based on sources: ${basedOn.sources}`);
+    } else if (basedOn.docs) {
+        const idsToDelete = basedOn.docs.map((doc) => doc.metadata.hash);
+        await Promise.all([vectorStore.delete({ ids: idsToDelete }), recordManager.deleteIds(idsToDelete)]);
+        console.log(`Deleted ${idsToDelete.length} documents based on docs`);
+    } else {
+        throw new Error('unindex must be called with either sources or docs');
+    }
 }
