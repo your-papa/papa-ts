@@ -49,10 +49,14 @@ export class Papa {
     constructor(data: PapaData) {
         this.setGenModel(data.genModel);
         this.setEmbedModel(data.embedModel);
+        if (data.langsmithApiKey) this.setTracer(data.langsmithApiKey);
         this.vectorStore.create('VectorStore');
         this.retriever = this.vectorStore.asRetriever({ k: 100 });
         this.recordManager = new DexieRecordManager('RecordManager');
-        if (data.langsmithApiKey) this.tracer = getTracer(data.langsmithApiKey);
+    }
+
+    setTracer(langsmithApiKey: string) {
+        this.tracer = getTracer(langsmithApiKey);
     }
 
     setEmbedModel(embedModel: OllamaEmbedModel | OpenAIEmbedModel) {
