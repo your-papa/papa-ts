@@ -10,34 +10,49 @@ const vectorStoreSchema = {
     order: 'number',
     header: 'string[]',
     content: 'string',
-    embedding: 'vector[1536]',
 } as const;
 
-export type VectorDocument = TypedDocument<Orama<typeof vectorStoreSchema>>;
+type VectorDocument = TypedDocument<Orama<typeof vectorStoreSchema>>;
+
+export interface VectorStoreBackup {
+    indexName: string;
+    vectorSize: number;
+    docs: VectorDocument[];
+}
 
 export class OramaStore extends VectorStore {
     private db: Orama<typeof vectorStoreSchema>;
+    private indexName: string;
+    private vectorSize: number;
 
     _vectorstoreType(): string {
         return 'OramaStore';
     }
 
-    constructor(public embeddings: Embeddings, args: Record<string, any>) {
+    constructor(
+        public embeddings: Embeddings,
+        args: Record<string, any>
+    ) {
         super(embeddings, args);
     }
 
-    async create(indexName: string) {
+    async create(indexName: string, vectorSize: number) {
+        this.indexName = indexName;
+        this.vectorSize = vectorSize;
         this.db = await create({
-            schema: vectorStoreSchema,
+            schema: {
+                ...vectorStoreSchema,
+                embedding: `vector[${vectorSize}]`,
+            } as const,
             id: indexName,
         });
     }
 
-    async restore(vectorStoreBackup: VectorDocument[]) {
+    async restore(vectorStoreBackup: VectorStoreBackup) {
         console.log('Restoring vectorstore from backup');
         // vectorStoreBackup is an object and not an array for some reason
-        const docs = Object.keys(vectorStoreBackup).map((key) => vectorStoreBackup[key]);
-        await this.create('VectorStore');
+        const docs = Object.keys(vectorStoreBackup.docs).map((key) => vectorStoreBackup.docs[key]);
+        await this.create(vectorStoreBackup.indexName, vectorStoreBackup.vectorSize);
         await insertMultiple(this.db, docs);
         console.log('Restored vectorstore from backup', this.db.data.docs);
     }
@@ -83,7 +98,7 @@ export class OramaStore extends VectorStore {
         });
     }
 
-    async getData(): Promise<VectorDocument[]> {
-        return this.db.data.docs.docs as VectorDocument[];
+    async getData(): Promise<VectorStoreBackup> {
+        return { indexName: this.indexName, vectorSize: this.vectorSize, docs: this.db.data.docs.docs as VectorDocument[] };
     }
 }

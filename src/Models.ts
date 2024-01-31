@@ -46,6 +46,7 @@ export const OllamaEmbedModels = {
         description: 'Llama-2 Embedding',
     },
     mistral: {
+        vectorSize: 4096,
         description: 'Mistral Embedding',
     },
 };

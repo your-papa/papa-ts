@@ -15,8 +15,10 @@ import { IndexingMode, index, unindex } from './Indexing';
 import { getTracer } from './Langsmith';
 import {
     OllamaEmbedModel,
+    OllamaEmbedModels,
     OllamaGenModel,
     OpenAIEmbedModel,
+    OpenAIEmbedModels,
     OpenAIGenModel,
     isOllamaEmbedModel,
     isOllamaGenModel,
@@ -26,7 +28,7 @@ import {
 import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
 import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
-import { OramaStore, VectorDocument } from './VectorStore';
+import { OramaStore, VectorStoreBackup } from './VectorStore';
 
 export interface PapaData {
     genModel: OllamaGenModel | OpenAIGenModel;
@@ -50,8 +52,6 @@ export class Papa {
         this.setGenModel(data.genModel);
         this.setEmbedModel(data.embedModel);
         if (data.langsmithApiKey) this.setTracer(data.langsmithApiKey);
-        this.vectorStore.create('VectorStore');
-        this.retriever = this.vectorStore.asRetriever({ k: 100 });
         this.recordManager = new DexieRecordManager('RecordManager');
     }
 
@@ -59,12 +59,15 @@ export class Papa {
         this.tracer = getTracer(langsmithApiKey);
     }
 
-    setEmbedModel(embedModel: OllamaEmbedModel | OpenAIEmbedModel) {
+    private async setEmbedModel(embedModel: OllamaEmbedModel | OpenAIEmbedModel) {
         if (isOpenAIEmbedModel(embedModel)) {
             this.vectorStore = new OramaStore(new OpenAIEmbeddings({ ...embedModel, batchSize: 2048 }), {});
+            await this.vectorStore.create(embedModel.modelName, OpenAIEmbedModels[embedModel.modelName].vectorSize);
         } else if (isOllamaEmbedModel(embedModel)) {
             this.vectorStore = new OramaStore(new OllamaEmbeddings(embedModel), {});
+            await this.vectorStore.create(embedModel.model, OllamaEmbedModels[embedModel.model].vectorSize);
         } else throw new Error('Invalid embedModel');
+        this.retriever = this.vectorStore.asRetriever({ k: 100 });
     }
 
     async setGenModel(genModel: OllamaGenModel | OpenAIGenModel) {
@@ -91,11 +94,11 @@ export class Papa {
     run(input: PipeInput) {
         console.log('Running RAG... Input:', input);
         return input.isRAG
-            ? this._streamProcessor(createRagPipe(this.retriever, this.model, input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined))
-            : this._streamProcessor(createConversationPipe(this.model, input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined));
+            ? this.streamProcessor(createRagPipe(this.retriever, this.model, input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined))
+            : this.streamProcessor(createConversationPipe(this.model, input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined));
     }
 
-    async *_streamProcessor(responseStream: AsyncGenerator<RunLogPatch>): AsyncGenerator<PapaResponse> {
+    private async *streamProcessor(responseStream: AsyncGenerator<RunLogPatch>): AsyncGenerator<PapaResponse> {
         let pipeOutput: any = {};
         let alreadyRetrieved = false;
         let alreadyReduced = false;
@@ -117,7 +120,7 @@ export class Papa {
     }
 
     async load(vectorStoreBackup: ArrayBuffer) {
-        const { VectorStore, RecordManager } = decode(vectorStoreBackup) as { VectorStore: VectorDocument[]; RecordManager: VectorIndexRecord[] };
+        const { VectorStore, RecordManager } = decode(vectorStoreBackup) as { VectorStore: VectorStoreBackup; RecordManager: VectorIndexRecord[] };
         await Promise.all([this.vectorStore.restore(VectorStore), this.recordManager.restore(RecordManager)]);
     }
 
