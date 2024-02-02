@@ -4,6 +4,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { RunnablePassthrough, RunnableSequence } from '@langchain/core/runnables';
 import { VectorStoreRetriever } from '@langchain/core/vectorstores';
+import { PromptTemplate } from '@langchain/core/prompts';
 
 import { Language, Prompts } from './Prompts';
 
@@ -15,6 +16,7 @@ export type PipeInput = {
 };
 
 export function createRagPipe(retriever: VectorStoreRetriever, model: BaseChatModel, input: PipeInput) {
+    console.log('Model name', model.getName());
     const ragChain = RunnableSequence.from([
         {
             query: (input: PipeInput) => input.userQuery,
@@ -28,7 +30,7 @@ export function createRagPipe(retriever: VectorStoreRetriever, model: BaseChatMo
                     .pipe(getDocsReducePipe(model, input)),
             ]).withConfig({ runName: 'Retrieving Notes' }),
         },
-        Prompts[input.lang].rag,
+        PromptTemplate.fromTemplate(Prompts[input.lang].rag),
         model,
         new StringOutputParser(),
     ]).withConfig({ runName: 'RAG Chat Pipe' });
@@ -41,7 +43,7 @@ export function createConversationPipe(model: BaseChatModel, input: PipeInput) {
             query: (input: PipeInput) => input.userQuery,
             chatHistory: (input: PipeInput) => input.chatHistory,
         },
-        Prompts[input.lang].conversation,
+        PromptTemplate.fromTemplate(Prompts[input.lang].conversation),
         model,
         new StringOutputParser(),
     ]).withConfig({ runName: 'Normal Chat Pipe' });
@@ -52,7 +54,9 @@ function getDocsPostProcessor(model: BaseChatModel, pipeInput: PipeInput) {
     return async (documents: Document[]) => {
         const tokenMax =
             2000 -
-            (await model.getNumTokens((await Prompts[pipeInput.lang].reduce.formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString())) -
+            (await model.getNumTokens(
+                (await PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce).formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString()
+            )) -
             5; // not sure why we need to subtract 5 tokens more
         console.log('Retrieved Docs', documents);
         // group documents by filepath
@@ -116,7 +120,9 @@ function getDocsReducePipe(model: BaseChatModel, pipeInput: PipeInput) {
         // 4097 max but not working that well
         const tokenMax =
             2000 -
-            (await model.getNumTokens((await Prompts[pipeInput.lang].reduce.formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString())) -
+            (await model.getNumTokens(
+                (await PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce).formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString()
+            )) -
             5; // not sure why we need to subtract 5 tokens more
         do {
             if (editableConfig) editableConfig.runName = `Reduce ${reduceCount + 1}`;
@@ -125,7 +131,9 @@ function getDocsReducePipe(model: BaseChatModel, pipeInput: PipeInput) {
             const splitedContents = await splitContents(contents, (content: string) => model.getNumTokens(content), tokenMax);
             const reduceChain = RunnableSequence.from([
                 { content: new RunnablePassthrough(), query: () => pipeInput.userQuery },
-                reduceCount === 0 ? Prompts[pipeInput.lang].initialReduce : Prompts[pipeInput.lang].reduce,
+                reduceCount === 0
+                    ? PromptTemplate.fromTemplate(Prompts[pipeInput.lang].initialReduce)
+                    : PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce),
                 model,
                 new StringOutputParser(),
             ]);

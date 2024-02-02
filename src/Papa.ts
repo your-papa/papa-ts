@@ -2,6 +2,7 @@ import { ChatOllama } from '@langchain/community/chat_models/ollama';
 import { Document } from '@langchain/core/documents';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { StringOutputParser } from '@langchain/core/output_parsers';
+import { PromptTemplate } from '@langchain/core/prompts';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { RunLogPatch } from '@langchain/core/tracers/log_stream';
 import { VectorStoreRetriever } from '@langchain/core/vectorstores';
@@ -88,7 +89,7 @@ export class Papa {
     }
 
     async createTitleFromChatHistory(lang: Language, chatHistory: string) {
-        return RunnableSequence.from([Prompts[lang].createTitle, this.model, new StringOutputParser()]).invoke({ chatHistory });
+        return RunnableSequence.from([PromptTemplate.fromTemplate(Prompts[lang].createTitle), this.model, new StringOutputParser()]).invoke({ chatHistory });
     }
 
     run(input: PipeInput) {
