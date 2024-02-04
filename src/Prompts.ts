@@ -43,7 +43,7 @@ Frage: {query}
 Antwort:`,
     },
     en: {
-        initialAssitantMessage: `Hello, I am your assistant. How can I help you?`,
+        initialAssistantMessage: `Hello, I am your assistant. How can I help you?`,
         createTitle: `Create a short Title about the following conversation, so that it can be used directly as a filename. The Title may only consist of letters and spaces.
 Conversation:
 "{chatHistory}"
