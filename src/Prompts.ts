@@ -1,6 +1,6 @@
 export const Prompts = {
     de: {
-        initialAssitantMessage: `Hallo, ich bin dein Assistent. Wie kann ich dir helfen?`,
+        initialAssistantMessage: `Hallo, ich bin dein Assistent. Wie kann ich dir helfen?`,
         createTitle: `Erstelle einen sehr kurzen Titel als Zussamenfassung über die folgende Konversation, sodass er direkt als Dateinamen verwendet werden kann. Der Title darf also ausschließlich nur aus Buchstaben und Leerzeichen bestehen.
 Conversation:
 "{chatHistory}"
