@@ -30,11 +30,13 @@ import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
 import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
 import { OramaStore, VectorStoreBackup } from './VectorStore';
+import Log, { LogLvl } from './Logging';
 
 export interface PapaData {
     genModel: OllamaGenModel | OpenAIGenModel;
     embedModel: OllamaEmbedModel | OpenAIEmbedModel;
     langsmithApiKey?: string;
+    logLvl?: LogLvl;
 }
 
 export interface PapaResponse {
@@ -54,10 +56,7 @@ export class Papa {
         this.setEmbedModel(data.embedModel);
         if (data.langsmithApiKey) this.setTracer(data.langsmithApiKey);
         this.recordManager = new DexieRecordManager('RecordManager');
-    }
-
-    setTracer(langsmithApiKey: string) {
-        this.tracer = getTracer(langsmithApiKey);
+        Log.setLogLevel(data.logLvl ?? LogLvl.INFO);
     }
 
     private async setEmbedModel(embedModel: OllamaEmbedModel | OpenAIEmbedModel) {
@@ -80,7 +79,7 @@ export class Papa {
     }
 
     async embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {
-        console.log('Embedding documents in mode', indexingMode);
+        Log.info('Embedding documents in mode', indexingMode);
         return await index(documents, this.recordManager, this.vectorStore, indexingMode, 1000);
     }
 
@@ -93,7 +92,7 @@ export class Papa {
     }
 
     run(input: PipeInput) {
-        console.log('Running RAG... Input:', input);
+        Log.info('Running RAG... Input:', input);
         return input.isRAG
             ? this.streamProcessor(createRagPipe(this.retriever, this.model, input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined))
             : this.streamProcessor(createConversationPipe(this.model, input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined));
@@ -106,7 +105,7 @@ export class Papa {
         let sbResponse: PapaResponse = { status: 'Startup', content: '...' };
         for await (const response of responseStream) {
             pipeOutput = applyPatch(pipeOutput, response.ops).newDocument;
-            // console.log('Stream Log', structuredClone(pipeOutput));
+            // Log.info('Stream Log', structuredClone(pipeOutput));
             if (!alreadyRetrieved && pipeOutput.logs.Retrieving) {
                 alreadyRetrieved = true;
                 sbResponse = { status: 'Retrieving', content: 'Retrieving...' };
@@ -130,5 +129,12 @@ export class Papa {
             VectorStore: await this.vectorStore.getData(),
             RecordManager: await this.recordManager.getData(),
         });
+    }
+
+    setTracer(langsmithApiKey: string) {
+        this.tracer = getTracer(langsmithApiKey);
+    }
+    setLogLevel(verbose: LogLvl) {
+        Log.setLogLevel(verbose);
     }
 }

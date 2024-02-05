@@ -3,6 +3,8 @@ import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { App, TFile } from 'obsidian';
 import crypto from 'crypto';
 
+import Log from './Logging';
+
 export function hashString(inputString: string): string {
     return crypto.createHash('sha1').update(inputString, 'utf-8').digest('hex');
 }
@@ -109,7 +111,7 @@ export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): 
             }
         }
     }
-    console.log('Loaded ' + docs.length + ' documents from Obsidian');
+    Log.info('Loaded ' + docs.length + ' documents from Obsidian');
 
     return docs;
 }

@@ -4,6 +4,8 @@ import { VectorStore } from '@langchain/core/vectorstores';
 import { Orama, Results, TypedDocument, create, insertMultiple, removeMultiple, search } from '@orama/orama';
 import { _deepClone } from 'fast-json-patch/module/helpers';
 
+import Log from './Logging';
+
 const vectorStoreSchema = {
     id: 'string',
     filepath: 'string',
@@ -49,12 +51,13 @@ export class OramaStore extends VectorStore {
     }
 
     async restore(vectorStoreBackup: VectorStoreBackup) {
-        console.log('Restoring vectorstore from backup');
+        Log.debug('Restoring vectorstore from backup');
         // vectorStoreBackup is an object and not an array for some reason
         const docs = Object.keys(vectorStoreBackup.docs).map((key) => vectorStoreBackup.docs[key]);
         await this.create(vectorStoreBackup.indexName, vectorStoreBackup.vectorSize);
         await insertMultiple(this.db, docs);
-        console.log('Restored vectorstore from backup', this.db.data.docs);
+        Log.info('Restored vectorstore from backup');
+        Log.debug(this.db.data.docs.docs);
     }
 
     async delete(filters: { ids: string[] }) {
@@ -72,7 +75,6 @@ export class OramaStore extends VectorStore {
         }));
 
         const ids = await insertMultiple(this.db, docs);
-        // console.log('Inserted documents with ids', ids);
         return ids;
     }
 

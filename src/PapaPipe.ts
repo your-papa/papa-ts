@@ -7,6 +7,7 @@ import { VectorStoreRetriever } from '@langchain/core/vectorstores';
 import { PromptTemplate } from '@langchain/core/prompts';
 
 import { Language, Prompts } from './Prompts';
+import Log from './Logging';
 
 export type PipeInput = {
     isRAG: boolean;
@@ -16,7 +17,6 @@ export type PipeInput = {
 };
 
 export function createRagPipe(retriever: VectorStoreRetriever, model: BaseChatModel, input: PipeInput) {
-    console.log('Model name', model.getName());
     const ragChain = RunnableSequence.from([
         {
             query: (input: PipeInput) => input.userQuery,
@@ -58,7 +58,7 @@ function getDocsPostProcessor(model: BaseChatModel, pipeInput: PipeInput) {
                 (await PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce).formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString()
             )) -
             5; // not sure why we need to subtract 5 tokens more
-        console.log('Retrieved Docs', documents);
+        Log.debug('Retrieved Docs', documents);
         // group documents by filepath
         const documentsByFilepath: Record<string, Document[]> = {};
         for (const document of documents) {
@@ -100,7 +100,7 @@ function getDocsPostProcessor(model: BaseChatModel, pipeInput: PipeInput) {
         }
 
         const needsReduce = (await model.getNumTokens(processedDocuments.join('\n\n'))) > tokenMax;
-        console.log('Postprocessed Docs', processedDocuments);
+        Log.debug('Postprocessed Docs', processedDocuments);
         return { notes: processedDocuments, needsReduce };
     };
 }
@@ -138,7 +138,7 @@ function getDocsReducePipe(model: BaseChatModel, pipeInput: PipeInput) {
                 new StringOutputParser(),
             ]);
             contents = await Promise.all(splitedContents.map((contents) => reduceChain.invoke(contents.join('\n\n'))));
-            console.log('Reduced Docs', contents);
+            Log.debug('Reduced Docs', contents);
             reduceCount += 1;
         } while ((await model.getNumTokens(contents.join('\n\n'))) > tokenMax);
         return contents.join('\n\n');

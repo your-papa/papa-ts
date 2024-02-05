@@ -1,6 +1,7 @@
 import { Papa, PapaData } from './Papa';
 import { obsidianDocumentLoader } from './ObsidianDocumentLoader';
 import { Language, Languages, Prompts } from './Prompts';
+import { LogLvl } from './Logging';
 import {
     OpenAIGenModel,
     OpenAIGenModels,
@@ -23,6 +24,7 @@ export {
     Prompts,
     Language,
     Languages,
+    LogLvl,
     OpenAIGenModel,
     OpenAIGenModels,
     OpenAIGenModelNames,
