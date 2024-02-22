@@ -78,9 +78,9 @@ export class Papa {
         } else throw new Error('Invalid genModel');
     }
 
-    async embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {
+    embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {
         Log.info('Embedding documents in mode', indexingMode);
-        return await index(documents, this.recordManager, this.vectorStore, indexingMode, 1000);
+        return index(documents, this.recordManager, this.vectorStore, indexingMode, 100);
     }
 
     async deleteDocuments(basedOn: { docs?: Document[]; sources?: string[] }) {

@@ -26,7 +26,7 @@ function batch<T>(size: number, iterable: T[]): T[][] {
 
 export type IndexingMode = 'full' | 'byFile';
 
-export async function index(docs: Document[], recordManager: DexieRecordManager, vectorStore: VectorStore, mode: IndexingMode = 'full', batchSize = 100) {
+export async function* index(docs: Document[], recordManager: DexieRecordManager, vectorStore: VectorStore, mode: IndexingMode = 'full', batchSize = 100) {
     const indexStartTime = Date.now();
     let numAdded = 0;
     let numSkipped = 0;
@@ -59,17 +59,20 @@ export async function index(docs: Document[], recordManager: DexieRecordManager,
                 return { id: doc.metadata.hash, filepath: doc.metadata.filepath, indexed_at: Date.now() };
             })
         );
+        yield { numAdded, numSkipped, numDeleted };
     }
     if (mode === 'byFile') {
         const idsToDelete = await recordManager.getIdsToDelete({ indexStartTime, sources: [...new Set(docs.map((doc) => doc.metadata.filepath))] });
         await Promise.all([vectorStore.delete({ ids: idsToDelete }), recordManager.deleteIds(idsToDelete)]);
         numDeleted += idsToDelete.length;
         Log.info(`Indexed by File: Added ${numAdded} documents, skipped ${numSkipped} documents, deleted ${numDeleted} documents`);
+        yield { numAdded, numSkipped, numDeleted };
     } else if (mode === 'full') {
         const idsToDelete = await recordManager.getIdsToDelete({ indexStartTime });
         await Promise.all([vectorStore.delete({ ids: idsToDelete }), recordManager.deleteIds(idsToDelete)]);
         numDeleted += idsToDelete.length;
         Log.info(`Indexed all: Added ${numAdded} documents, skipped ${numSkipped} documents, deleted ${numDeleted} documents`);
+        yield { numAdded, numSkipped, numDeleted };
     }
     return { numAdded, numSkipped, numDeleted };
 }
