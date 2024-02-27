@@ -1,22 +1,22 @@
 export const OpenAIGenModels = {
     'gpt-3.5-turbo': {
-        maxTokens: 4096,
+        contextWindow: 4096,
         description: 'GPT-3.5 Turbo (4096 Tokens)',
     },
     'gpt-3.5-turbo-1106': {
-        maxTokens: 16385,
+        contextWindow: 16385,
         description: 'Latest GPT-3.5 Turbo (16385 Tokens)',
     },
     'gpt-4': {
-        maxTokens: 8192,
+        contextWindow: 8192,
         description: 'GPT-4 (8192 Tokens)',
     },
     'gpt-4-32k': {
-        maxTokens: 32768,
+        contextWindow: 32768,
         description: 'GPT-4 (32768 Tokens)',
     },
     'gpt-4-1106-preview': {
-        maxTokens: 128000,
+        contextWindow: 128000,
         description: 'Latest GPT-4 (128000 Tokens)',
     },
 };
@@ -24,18 +24,18 @@ export const OpenAIGenModels = {
 export const OpenAIEmbedModels = {
     'text-embedding-ada-002': {
         vectorSize: 1536,
-        maxTokens: 8191,
+        contextWindow: 8191,
         description: 'Text Embedding ADA 002',
     },
 };
 
 export const OllamaGenModels = {
     llama2: {
-        maxTokens: 4096,
+        contextWindow: 4096,
         description: 'Llama-2 (4096 Tokens)',
     },
     mistral: {
-        maxTokens: 8000,
+        contextWindow: 8000,
         description: 'Mistral (8000 Tokens)',
     },
 };
@@ -48,6 +48,11 @@ export const OllamaEmbedModels = {
     mistral: {
         vectorSize: 4096,
         description: 'Mistral Embedding',
+    },
+    'nomic-embed-text': {
+        vectorSize: 768,
+        description: 'Nomic Embedding',
+        contextWindow: 8192,
     },
 };
 
@@ -65,6 +70,7 @@ export const OpenAIEmbedModelNames = Object.keys(OpenAIEmbedModels) as (keyof ty
 export interface OpenAIEmbedModel {
     modelName: keyof typeof OpenAIEmbedModels;
     openAIApiKey: string;
+    similarityThreshold?: number;
 }
 export const isOpenAIEmbedModel = (model: any): model is OpenAIEmbedModel => {
     return OpenAIEmbedModelNames.includes(model.modelName);
@@ -84,6 +90,7 @@ export const OllamaEmbedModelNames = Object.keys(OllamaEmbedModels) as (keyof ty
 export interface OllamaEmbedModel {
     model: keyof typeof OllamaEmbedModels;
     baseUrl: string;
+    similarityThreshold?: number;
 }
 export const isOllamaEmbedModel = (model: any): model is OllamaEmbedModel => {
     return OllamaEmbedModelNames.includes(model.model);
