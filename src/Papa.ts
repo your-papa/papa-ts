@@ -1,25 +1,23 @@
 import { ChatOllama } from '@langchain/community/chat_models/ollama';
 import { Document } from '@langchain/core/documents';
-import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { RunLogPatch } from '@langchain/core/tracers/log_stream';
 import { VectorStoreRetriever } from '@langchain/core/vectorstores';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
+import { OllamaEmbeddings } from '@langchain/community/embeddings/ollama';
 import { decode, encode } from '@msgpack/msgpack';
 import { applyPatch } from 'fast-json-patch';
-import { OllamaEmbeddings } from 'langchain/embeddings/ollama';
-import { LangChainTracer } from 'langchain/callbacks';
+import { LangChainTracer } from '@langchain/core/tracers/tracer_langchain';
 
 import { IndexingMode, index, unindex } from './Indexing';
 import { getTracer } from './Langsmith';
 import {
+    EmbedModels,
     OllamaEmbedModel,
-    OllamaEmbedModels,
     OllamaGenModel,
     OpenAIEmbedModel,
-    OpenAIEmbedModels,
     OpenAIGenModel,
     isOllamaEmbedModel,
     isOllamaGenModel,
@@ -47,7 +45,7 @@ export interface PapaResponse {
 export class Papa {
     private vectorStore: OramaStore;
     private retriever: VectorStoreRetriever;
-    private model: BaseChatModel;
+    private genModel: OllamaGenModel | OpenAIGenModel;
     private recordManager: DexieRecordManager;
     private tracer?: LangChainTracer;
 
@@ -61,26 +59,30 @@ export class Papa {
 
     private async setEmbedModel(embedModel: OllamaEmbedModel | OpenAIEmbedModel) {
         if (isOpenAIEmbedModel(embedModel)) {
-            this.vectorStore = new OramaStore(new OpenAIEmbeddings({ ...embedModel, batchSize: 2048 }), {});
-            await this.vectorStore.create(embedModel.modelName, OpenAIEmbedModels[embedModel.modelName].vectorSize);
+            this.vectorStore = new OramaStore(new OpenAIEmbeddings({ ...embedModel, modelName: embedModel.model, batchSize: 2048, maxRetries: 0 }), {
+                similarityThreshold: embedModel.similarityThreshold ?? 0.75,
+            });
         } else if (isOllamaEmbedModel(embedModel)) {
-            this.vectorStore = new OramaStore(new OllamaEmbeddings(embedModel), {});
-            await this.vectorStore.create(embedModel.model, OllamaEmbedModels[embedModel.model].vectorSize);
+            this.vectorStore = new OramaStore(new OllamaEmbeddings({ ...embedModel, maxRetries: 0 }), {
+                similarityThreshold: embedModel.similarityThreshold ?? 0.5,
+            });
         } else throw new Error('Invalid embedModel');
+        await this.vectorStore.create(embedModel.model, EmbedModels[embedModel.model].vectorSize);
         this.retriever = this.vectorStore.asRetriever({ k: 100 });
     }
 
     async setGenModel(genModel: OllamaGenModel | OpenAIGenModel) {
+        this.genModel = genModel;
         if (isOpenAIGenModel(genModel)) {
-            this.model = new ChatOpenAI({ ...genModel, streaming: true });
+            this.genModel.lcModel = new ChatOpenAI({ ...genModel, modelName: genModel.model, streaming: true });
         } else if (isOllamaGenModel(genModel)) {
-            this.model = new ChatOllama(genModel);
+            this.genModel.lcModel = new ChatOllama(genModel);
         } else throw new Error('Invalid genModel');
     }
 
     embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {
         Log.info('Embedding documents in mode', indexingMode);
-        return index(documents, this.recordManager, this.vectorStore, indexingMode, 100);
+        return index(documents, this.recordManager, this.vectorStore, indexingMode, 10);
     }
 
     async deleteDocuments(basedOn: { docs?: Document[]; sources?: string[] }) {
@@ -88,14 +90,16 @@ export class Papa {
     }
 
     async createTitleFromChatHistory(lang: Language, chatHistory: string) {
-        return RunnableSequence.from([PromptTemplate.fromTemplate(Prompts[lang].createTitle), this.model, new StringOutputParser()]).invoke({ chatHistory });
+        return RunnableSequence.from([PromptTemplate.fromTemplate(Prompts[lang].createTitle), this.genModel.lcModel!, new StringOutputParser()]).invoke({
+            chatHistory,
+        });
     }
 
     run(input: PipeInput) {
         Log.info('Running RAG... Input:', input);
         return input.isRAG
-            ? this.streamProcessor(createRagPipe(this.retriever, this.model, input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined))
-            : this.streamProcessor(createConversationPipe(this.model, input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined));
+            ? this.streamProcessor(createRagPipe(this.retriever, this.genModel, input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined))
+            : this.streamProcessor(createConversationPipe(this.genModel, input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined));
     }
 
     private async *streamProcessor(responseStream: AsyncGenerator<RunLogPatch>): AsyncGenerator<PapaResponse> {

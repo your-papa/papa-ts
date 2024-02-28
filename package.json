@@ -1,6 +1,6 @@
 {
     "name": "papa-ts",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "description": "Backend for your Personal Assistant, powered by Private AI (aka PAPA)",
     "main": "dist/index",
     "types": "dist/index",
@@ -45,6 +45,7 @@
         "fast-json-patch": "^3.1.1",
         "graphql": "^16.8.1",
         "langchain": "^0.1.2",
+        "llama-tokenizer-js": "^1.1.3",
         "obsidian": "^1.4.11"
     }
 }

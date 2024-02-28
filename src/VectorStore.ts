@@ -26,6 +26,7 @@ export class OramaStore extends VectorStore {
     private db: Orama<typeof vectorStoreSchema>;
     private indexName: string;
     private vectorSize: number;
+    private similarity: number;
 
     _vectorstoreType(): string {
         return 'OramaStore';
@@ -36,6 +37,7 @@ export class OramaStore extends VectorStore {
         args: Record<string, any>
     ) {
         super(embeddings, args);
+        this.similarity = args.similarityThreshold || 0.75;
     }
 
     async create(indexName: string, vectorSize: number) {
@@ -87,7 +89,7 @@ export class OramaStore extends VectorStore {
             mode: 'vector',
             vector: { value: query, property: 'embedding' },
             limit: k,
-            similarity: 0.75,
+            similarity: this.similarity,
         });
         return results.hits.map((result) => {
             return [
@@ -102,5 +104,9 @@ export class OramaStore extends VectorStore {
 
     async getData(): Promise<VectorStoreBackup> {
         return { indexName: this.indexName, vectorSize: this.vectorSize, docs: this.db.data.docs.docs as VectorDocument[] };
+    }
+
+    setSimilarityThreshold(similarityThreshold: number) {
+        this.similarity = similarityThreshold;
     }
 }

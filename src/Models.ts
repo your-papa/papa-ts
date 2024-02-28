@@ -1,3 +1,5 @@
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+
 export const OpenAIGenModels = {
     'gpt-3.5-turbo': {
         contextWindow: 4096,
@@ -21,14 +23,6 @@ export const OpenAIGenModels = {
     },
 };
 
-export const OpenAIEmbedModels = {
-    'text-embedding-ada-002': {
-        vectorSize: 1536,
-        contextWindow: 8191,
-        description: 'Text Embedding ADA 002',
-    },
-};
-
 export const OllamaGenModels = {
     llama2: {
         contextWindow: 4096,
@@ -37,6 +31,19 @@ export const OllamaGenModels = {
     mistral: {
         contextWindow: 8000,
         description: 'Mistral (8000 Tokens)',
+    },
+};
+
+export const GenModels = {
+    ...OpenAIGenModels,
+    ...OllamaGenModels,
+};
+
+export const OpenAIEmbedModels = {
+    'text-embedding-ada-002': {
+        vectorSize: 1536,
+        contextWindow: 8191,
+        description: 'Text Embedding ADA 002',
     },
 };
 
@@ -56,24 +63,30 @@ export const OllamaEmbedModels = {
     },
 };
 
+export const EmbedModels = {
+    ...OpenAIEmbedModels,
+    ...OllamaEmbedModels,
+};
+
 export const OpenAIGenModelNames = Object.keys(OpenAIGenModels) as (keyof typeof OpenAIGenModels)[];
 export interface OpenAIGenModel {
-    modelName: keyof typeof OpenAIGenModels;
+    model: keyof typeof OpenAIGenModels;
     openAIApiKey: string;
     temperature?: number;
+    lcModel?: BaseChatModel;
 }
 export const isOpenAIGenModel = (model: any): model is OpenAIGenModel => {
-    return OpenAIGenModelNames.includes(model.modelName);
+    return OpenAIGenModelNames.includes(model.model);
 };
 
 export const OpenAIEmbedModelNames = Object.keys(OpenAIEmbedModels) as (keyof typeof OpenAIEmbedModels)[];
 export interface OpenAIEmbedModel {
-    modelName: keyof typeof OpenAIEmbedModels;
+    model: keyof typeof OpenAIEmbedModels;
     openAIApiKey: string;
     similarityThreshold?: number;
 }
 export const isOpenAIEmbedModel = (model: any): model is OpenAIEmbedModel => {
-    return OpenAIEmbedModelNames.includes(model.modelName);
+    return OpenAIEmbedModelNames.includes(model.model);
 };
 
 export const OllamaGenModelNames = Object.keys(OllamaGenModels) as (keyof typeof OllamaGenModels)[];
@@ -81,6 +94,7 @@ export interface OllamaGenModel {
     model: keyof typeof OllamaGenModels;
     baseUrl: string;
     temperature?: number;
+    lcModel?: BaseChatModel;
 }
 export const isOllamaGenModel = (model: any): model is OllamaGenModel => {
     return OllamaGenModelNames.includes(model.model);

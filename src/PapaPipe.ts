@@ -1,13 +1,14 @@
 import { BaseCallbackConfig } from '@langchain/core/callbacks/manager';
 import { Document } from '@langchain/core/documents';
-import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { RunnablePassthrough, RunnableSequence } from '@langchain/core/runnables';
 import { VectorStoreRetriever } from '@langchain/core/vectorstores';
 import { PromptTemplate } from '@langchain/core/prompts';
+import llamaTokenizer from 'llama-tokenizer-js';
 
 import { Language, Prompts } from './Prompts';
 import Log from './Logging';
+import { GenModels, OllamaGenModel, OpenAIGenModel, isOllamaGenModel, isOpenAIGenModel } from './Models';
 
 export type PipeInput = {
     isRAG: boolean;
@@ -16,7 +17,15 @@ export type PipeInput = {
     lang: Language;
 };
 
-export function createRagPipe(retriever: VectorStoreRetriever, model: BaseChatModel, input: PipeInput) {
+async function getTokenCount(model: OllamaGenModel | OpenAIGenModel, content: string) {
+    if (isOllamaGenModel(model)) {
+        return (llamaTokenizer.encode(content) || []).length - 100; // - 100 token count is not always exact, so we need to be safe
+    } else if (isOpenAIGenModel(model)) {
+        return (await model.lcModel!.getNumTokens(content)) - 100; // - 100 token count is not always exact, so we need to be safe
+    } else throw new Error('Unknown model type');
+}
+
+export function createRagPipe(retriever: VectorStoreRetriever, model: OllamaGenModel | OpenAIGenModel, input: PipeInput) {
     const ragChain = RunnableSequence.from([
         {
             query: (input: PipeInput) => input.userQuery,
@@ -31,33 +40,33 @@ export function createRagPipe(retriever: VectorStoreRetriever, model: BaseChatMo
             ]).withConfig({ runName: 'Retrieving Notes' }),
         },
         PromptTemplate.fromTemplate(Prompts[input.lang].rag),
-        model,
+        model.lcModel!,
         new StringOutputParser(),
     ]).withConfig({ runName: 'RAG Chat Pipe' });
     return ragChain;
 }
 
-export function createConversationPipe(model: BaseChatModel, input: PipeInput) {
+export function createConversationPipe(model: OllamaGenModel | OpenAIGenModel, input: PipeInput) {
     const conversationChain = RunnableSequence.from([
         {
             query: (input: PipeInput) => input.userQuery,
             chatHistory: (input: PipeInput) => input.chatHistory,
         },
         PromptTemplate.fromTemplate(Prompts[input.lang].conversation),
-        model,
+        model.lcModel!,
         new StringOutputParser(),
     ]).withConfig({ runName: 'Normal Chat Pipe' });
     return conversationChain;
 }
 
-function getDocsPostProcessor(model: BaseChatModel, pipeInput: PipeInput) {
+function getDocsPostProcessor(model: OllamaGenModel | OpenAIGenModel, pipeInput: PipeInput) {
     return async (documents: Document[]) => {
         const tokenMax =
-            2000 -
-            (await model.getNumTokens(
+            GenModels[model.model].contextWindow -
+            (await getTokenCount(
+                model,
                 (await PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce).formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString()
-            )) -
-            5; // not sure why we need to subtract 5 tokens more
+            ));
         Log.debug('Retrieved Docs', documents);
         // group documents by filepath
         const documentsByFilepath: Record<string, Document[]> = {};
@@ -88,7 +97,7 @@ function getDocsPostProcessor(model: BaseChatModel, pipeInput: PipeInput) {
             }
 
             // split documents by length to fit into context length
-            const splitedContents = await splitContents(contents, (content: string) => model.getNumTokens(content), tokenMax);
+            const splitedContents = await splitContents(contents, (content: string) => getTokenCount(model, content), tokenMax);
             const hasMultipleParts = splitedContents.length > 1;
             splitedContents.forEach((contents, i) => {
                 let content = '';
@@ -99,13 +108,13 @@ function getDocsPostProcessor(model: BaseChatModel, pipeInput: PipeInput) {
             });
         }
 
-        const needsReduce = (await model.getNumTokens(processedDocuments.join('\n\n'))) > tokenMax;
+        const needsReduce = (await getTokenCount(model, processedDocuments.join('\n\n'))) > tokenMax;
         Log.debug('Postprocessed Docs', processedDocuments);
         return { notes: processedDocuments, needsReduce };
     };
 }
 
-function getDocsReducePipe(model: BaseChatModel, pipeInput: PipeInput) {
+function getDocsReducePipe(model: OllamaGenModel | OpenAIGenModel, pipeInput: PipeInput) {
     return async (
         postProcessedResult: { notes: string[]; needsReduce: boolean },
         options?: {
@@ -117,30 +126,30 @@ function getDocsReducePipe(model: BaseChatModel, pipeInput: PipeInput) {
         let contents = postProcessedResult.notes;
         let reduceCount = 0;
 
-        // 4097 max but not working that well
         const tokenMax =
-            2000 -
-            (await model.getNumTokens(
+            GenModels[model.model].contextWindow -
+            (await getTokenCount(
+                model,
                 (await PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce).formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString()
-            )) -
-            5; // not sure why we need to subtract 5 tokens more
+            ));
+
         do {
             if (editableConfig) editableConfig.runName = `Reduce ${reduceCount + 1}`;
 
             // split notes by length to fit into context length
-            const splitedContents = await splitContents(contents, (content: string) => model.getNumTokens(content), tokenMax);
+            const splitedContents = await splitContents(contents, (content: string) => getTokenCount(model, content), tokenMax);
             const reduceChain = RunnableSequence.from([
                 { content: new RunnablePassthrough(), query: () => pipeInput.userQuery },
                 reduceCount === 0
                     ? PromptTemplate.fromTemplate(Prompts[pipeInput.lang].initialReduce)
                     : PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce),
-                model,
+                model.lcModel!,
                 new StringOutputParser(),
             ]);
             contents = await Promise.all(splitedContents.map((contents) => reduceChain.invoke(contents.join('\n\n'))));
             Log.debug('Reduced Docs', contents);
             reduceCount += 1;
-        } while ((await model.getNumTokens(contents.join('\n\n'))) > tokenMax);
+        } while ((await getTokenCount(model, contents.join('\n\n'))) > tokenMax);
         return contents.join('\n\n');
     };
 }
