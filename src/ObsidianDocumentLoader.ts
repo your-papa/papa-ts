@@ -17,7 +17,8 @@ export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): 
         const fileMetadata = obsidianApp.metadataCache.getFileCache(file);
         if (!fileMetadata) continue;
         // Keep in mind that chunksize is not token size but character size
-        const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 2000, chunkOverlap: 0, separators: ['\n', '. ', '? ', '! ', ' ', ''] });
+        const maxTokenSize = 512;
+        const splitter = new RecursiveCharacterTextSplitter({ chunkSize: maxTokenSize * 4, chunkOverlap: 0, separators: ['\n', '. ', '? ', '! ', ' ', ''] }); // One token is 4 characters on average
 
         // TODO check for edge cases for example if # is used and directly afterwards ###
         const pageContent = await obsidianApp.vault.cachedRead(file);
