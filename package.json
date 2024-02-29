@@ -1,6 +1,6 @@
 {
     "name": "papa-ts",
-    "version": "0.3.3",
+    "version": "0.3.4",
     "description": "Backend for your Personal Assistant, powered by Private AI (aka PAPA)",
     "main": "dist/index",
     "types": "dist/index",

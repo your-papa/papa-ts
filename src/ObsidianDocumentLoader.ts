@@ -92,6 +92,8 @@ export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): 
                 const embedContent = 'Note Path: ' + file.path + '\n' + headingTree.join('\n') + '\n' + sectionContent;
                 addDoc(embedContent);
             } else {
+                // TODO handle other types of sections
+                if (sectionContent.length > maxTokenSize * 8) continue;
                 const embedContent = 'Note Path: ' + file.path + '\n' + headingTree.join('\n') + '\n' + sectionContent;
                 addDoc(embedContent);
             }
