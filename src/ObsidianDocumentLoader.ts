@@ -21,34 +21,39 @@ export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): 
         const splitter = new RecursiveCharacterTextSplitter({ chunkSize: maxTokenSize * 4, chunkOverlap: 0, separators: ['\n', '. ', '? ', '! ', ' ', ''] }); // One token is 4 characters on average
 
         // TODO check for edge cases for example if # is used and directly afterwards ###
-        const pageContent = await obsidianApp.vault.cachedRead(file);
+        const noteContent = await obsidianApp.vault.cachedRead(file);
         let headerCount = 0;
         let docCount = 1;
-        let headingTree = [];
+        let headingTree: string[] = [];
         let currentHeadingLevel = 0;
         let foundFrontmatter = false;
 
         for (const section of fileMetadata.sections || []) {
-            const sectionContent = pageContent.slice(section.position.start.offset, section.position.end.offset);
-            if (section.type === 'yaml' && !foundFrontmatter) {
-                const id = file.path + ' metadata';
-                const pageContent = 'Note Path: ' + file.path + '\n' + 'Metadaten:\n' + sectionContent;
+            const sectionContent = noteContent.slice(section.position.start.offset, section.position.end.offset);
+            const addDoc = async (embedContent: string, isMetadata: boolean = false) => {
+                const id = file.path + (isMetadata ? ' metadata' : headingTree.join('') + ' ID' + docCount);
                 docs.push({
                     metadata: {
                         id,
-                        hash: hashString(id + pageContent),
+                        hash: hashString(id + sectionContent),
                         filepath: file.path,
-                        order: 0,
-                        header: [],
-                        content: 'Metadaten:\n' + sectionContent,
+                        order: isMetadata ? 0 : docCount,
+                        header: [...headingTree],
+                        content: isMetadata ? 'Metadaten:\n' + sectionContent : sectionContent,
                     },
-                    pageContent,
+                    pageContent: embedContent,
                 });
+                if (!isMetadata) docCount++;
+            };
+
+            if (section.type === 'yaml' && !foundFrontmatter) {
+                const embedContent = 'Note Path: ' + file.path + '\n' + 'Metadaten:\n' + sectionContent;
+                addDoc(embedContent, true);
                 foundFrontmatter = true;
                 continue;
             } else if (section.type === 'heading') {
                 const currentHeading = fileMetadata.headings![headerCount];
-                const headingContent = pageContent.slice(currentHeading.position.start.offset, currentHeading.position.end.offset);
+                const headingContent = noteContent.slice(currentHeading.position.start.offset, currentHeading.position.end.offset);
                 if (currentHeading.level > currentHeadingLevel) {
                     headingTree.push(headingContent);
                     currentHeadingLevel = currentHeading.level;
@@ -78,37 +83,17 @@ export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): 
                         splitParagraph[i + 1] = splitParagraph[i + 1].slice(1).trim();
                     }
                     const paragraph = splitParagraph[i] + splittedByChar;
-                    const id = file.path + headingTree.join('') + ' ID' + docCount;
-                    const pageContent = 'Note Path: ' + file.path + '\n' + headingTree.join('\n') + '\n' + paragraph;
-                    docs.push({
-                        metadata: {
-                            id,
-                            hash: hashString(id + pageContent),
-                            filepath: file.path,
-                            order: docCount,
-                            header: [...headingTree],
-                            content: paragraph,
-                        },
-                        pageContent,
-                    });
-                    docCount++;
+                    const embedContent = 'Note Path: ' + file.path + '\n' + headingTree.join('\n') + '\n' + paragraph;
+                    addDoc(embedContent);
                 }
+            } else if (section.type === 'code') {
+                // ignore code blocks bigger than maxTokenSize for now (TODO)
+                if (sectionContent.length > maxTokenSize * 4) continue;
+                const embedContent = 'Note Path: ' + file.path + '\n' + headingTree.join('\n') + '\n' + sectionContent;
+                addDoc(embedContent);
             } else {
-                // TODO handle other types like huge code blocks (Use codespliter)
-                const id = file.path + headingTree.join('') + ' ID' + docCount;
-                const pageContent = 'Note Path: ' + file.path + '\n' + headingTree.join('\n') + '\n' + sectionContent;
-                docs.push({
-                    metadata: {
-                        id,
-                        hash: hashString(id + pageContent),
-                        filepath: file.path,
-                        order: docCount,
-                        header: [...headingTree],
-                        content: sectionContent,
-                    },
-                    pageContent,
-                });
-                docCount++;
+                const embedContent = 'Note Path: ' + file.path + '\n' + headingTree.join('\n') + '\n' + sectionContent;
+                addDoc(embedContent);
             }
         }
     }
