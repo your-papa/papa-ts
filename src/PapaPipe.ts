@@ -8,7 +8,7 @@ import llamaTokenizer from 'llama-tokenizer-js';
 
 import { Language, Prompts } from './Prompts';
 import Log from './Logging';
-import { GenModels, OllamaGenModel, OpenAIGenModel, isOllamaGenModel, isOpenAIGenModel } from './Models';
+import { OllamaGenModel, OpenAIGenModel, isOpenAIGenModel } from './Models';
 
 export type PipeInput = {
     isRAG: boolean;
@@ -18,11 +18,11 @@ export type PipeInput = {
 };
 
 async function getTokenCount(model: OllamaGenModel | OpenAIGenModel, content: string) {
-    if (isOllamaGenModel(model)) {
-        return (llamaTokenizer.encode(content) || []).length - 100; // - 100 token count is not always exact, so we need to be safe
-    } else if (isOpenAIGenModel(model)) {
+    if (isOpenAIGenModel(model)) {
         return (await model.lcModel!.getNumTokens(content)) - 100; // - 100 token count is not always exact, so we need to be safe
-    } else throw new Error('Unknown model type');
+    } else {
+        return (llamaTokenizer.encode(content) || []).length - 100; // - 100 token count is not always exact, so we need to be safe
+    }
 }
 
 export function createRagPipe(retriever: VectorStoreRetriever, model: OllamaGenModel | OpenAIGenModel, input: PipeInput) {
@@ -62,7 +62,7 @@ export function createConversationPipe(model: OllamaGenModel | OpenAIGenModel, i
 function getDocsPostProcessor(model: OllamaGenModel | OpenAIGenModel, pipeInput: PipeInput) {
     return async (documents: Document[]) => {
         const tokenMax =
-            GenModels[model.model].contextWindow -
+            (model.contextWindow ?? 2048) -
             (await getTokenCount(
                 model,
                 (await PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce).formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString()
@@ -127,7 +127,7 @@ function getDocsReducePipe(model: OllamaGenModel | OpenAIGenModel, pipeInput: Pi
         let reduceCount = 0;
 
         const tokenMax =
-            GenModels[model.model].contextWindow -
+            (model.contextWindow ?? 2048) -
             (await getTokenCount(
                 model,
                 (await PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce).formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString()

@@ -23,20 +23,45 @@ export const OpenAIGenModels = {
     },
 };
 
-export const OllamaGenModels = {
+// R stands for Recommended
+export const OllamaRGenModels = {
     llama2: {
         contextWindow: 4096,
         description: 'Llama-2 (4096 Tokens)',
     },
-    mistral: {
+    'llama2-uncensored': {
+        contextWindow: 4096,
+        description: 'Llama-2 Uncensored (4096 Tokens)',
+    },
+    // mistral: {
+    //     contextWindow: 8000,
+    //     description: 'Mistral (8000 Tokens)',
+    // },
+    'mistral-openorca': {
         contextWindow: 8000,
-        description: 'Mistral (8000 Tokens)',
+        description: 'Mistral (8000 Tokens) with OpenOrca',
+    },
+    gemma: {
+        contextWindow: 8000,
+        description: 'Gemma (8000 Tokens)',
+    },
+    mixtral: {
+        contextWindow: 32000,
+        description: 'Mixtral (32000 Tokens)',
+    },
+    'dolphin-mixtral': {
+        contextWindow: 32000,
+        description: 'Dolphin Mixtral (32000 Tokens)',
+    },
+    phi: {
+        contextWindow: 2048,
+        description: 'Phi (2048 Tokens)',
     },
 };
 
 export const GenModels = {
     ...OpenAIGenModels,
-    ...OllamaGenModels,
+    ...OllamaRGenModels,
 };
 
 export const OpenAIEmbedModels = {
@@ -68,44 +93,56 @@ export const EmbedModels = {
     ...OllamaEmbedModels,
 };
 
-export const OpenAIGenModelNames = Object.keys(OpenAIGenModels) as (keyof typeof OpenAIGenModels)[];
+export const OpenAIGenModelNames = Object.keys(OpenAIGenModels);
 export interface OpenAIGenModel {
     model: keyof typeof OpenAIGenModels;
     openAIApiKey: string;
     temperature?: number;
     lcModel?: BaseChatModel;
+    contextWindow?: number;
 }
-export const isOpenAIGenModel = (model: any): model is OpenAIGenModel => {
+export const isOpenAIGenModel = (model: OllamaRGenModel | OllamaOGenModel | OpenAIGenModel): model is OpenAIGenModel => {
     return OpenAIGenModelNames.includes(model.model);
 };
 
-export const OpenAIEmbedModelNames = Object.keys(OpenAIEmbedModels) as (keyof typeof OpenAIEmbedModels)[];
+export const OllamaRGenModelNames = Object.keys(OllamaRGenModels);
+export interface OllamaRGenModel {
+    model: keyof typeof OllamaRGenModels;
+    baseUrl: string;
+    temperature?: number;
+    lcModel?: BaseChatModel;
+    contextWindow?: number;
+}
+export const isOllamaRecommendedGenModel = (model: OllamaRGenModel | OllamaOGenModel | OpenAIGenModel): model is OllamaRGenModel => {
+    return OllamaRGenModelNames.includes(model.model);
+};
+
+// O stands for Other
+export interface OllamaOGenModel {
+    model: string;
+    baseUrl: string;
+    temperature?: number;
+    lcModel?: BaseChatModel;
+    contextWindow?: number;
+}
+export type OllamaGenModel = OllamaRGenModel | OllamaOGenModel;
+
+export const OpenAIEmbedModelNames = Object.keys(OpenAIEmbedModels);
 export interface OpenAIEmbedModel {
     model: keyof typeof OpenAIEmbedModels;
     openAIApiKey: string;
     similarityThreshold?: number;
 }
-export const isOpenAIEmbedModel = (model: any): model is OpenAIEmbedModel => {
+export const isOpenAIEmbedModel = (model: OllamaEmbedModel | OpenAIEmbedModel): model is OpenAIEmbedModel => {
     return OpenAIEmbedModelNames.includes(model.model);
 };
 
-export const OllamaGenModelNames = Object.keys(OllamaGenModels) as (keyof typeof OllamaGenModels)[];
-export interface OllamaGenModel {
-    model: keyof typeof OllamaGenModels;
-    baseUrl: string;
-    temperature?: number;
-    lcModel?: BaseChatModel;
-}
-export const isOllamaGenModel = (model: any): model is OllamaGenModel => {
-    return OllamaGenModelNames.includes(model.model);
-};
-
-export const OllamaEmbedModelNames = Object.keys(OllamaEmbedModels) as (keyof typeof OllamaEmbedModels)[];
+export const OllamaEmbedModelNames = Object.keys(OllamaEmbedModels);
 export interface OllamaEmbedModel {
     model: keyof typeof OllamaEmbedModels;
     baseUrl: string;
     similarityThreshold?: number;
 }
-export const isOllamaEmbedModel = (model: any): model is OllamaEmbedModel => {
+export const isOllamaEmbedModel = (model: OllamaEmbedModel | OpenAIEmbedModel): model is OllamaEmbedModel => {
     return OllamaEmbedModelNames.includes(model.model);
 };

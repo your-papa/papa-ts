@@ -15,14 +15,15 @@ import { IndexingMode, index, unindex } from './Indexing';
 import { getTracer } from './Langsmith';
 import {
     EmbedModels,
+    GenModels,
     OllamaEmbedModel,
-    OllamaGenModel,
     OpenAIEmbedModel,
     OpenAIGenModel,
     isOllamaEmbedModel,
-    isOllamaGenModel,
     isOpenAIEmbedModel,
     isOpenAIGenModel,
+    isOllamaRecommendedGenModel,
+    OllamaGenModel,
 } from './Models';
 import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
@@ -73,11 +74,18 @@ export class Papa {
 
     async setGenModel(genModel: OllamaGenModel | OpenAIGenModel) {
         this.genModel = genModel;
+        // TODO check if context window size already set internally
         if (isOpenAIGenModel(genModel)) {
             this.genModel.lcModel = new ChatOpenAI({ ...genModel, modelName: genModel.model, streaming: true });
-        } else if (isOllamaGenModel(genModel)) {
+            this.genModel.contextWindow = genModel.contextWindow ?? GenModels[genModel.model].contextWindow;
+        } else {
             this.genModel.lcModel = new ChatOllama(genModel);
-        } else throw new Error('Invalid genModel');
+            if (isOllamaRecommendedGenModel(genModel)) {
+                this.genModel.contextWindow = genModel.contextWindow ?? GenModels[genModel.model].contextWindow;
+            } else {
+                this.genModel.contextWindow = genModel.contextWindow ?? 2048;
+            }
+        }
     }
 
     embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {
