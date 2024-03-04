@@ -8,7 +8,7 @@ import llamaTokenizer from 'llama-tokenizer-js';
 
 import { Language, Prompts } from './Prompts';
 import Log from './Logging';
-import { OllamaGenModel, OpenAIGenModel, isOpenAIGenModel } from './Models';
+import { GenModel, isOpenAIGenModel } from './Models';
 
 export type PipeInput = {
     isRAG: boolean;
@@ -17,7 +17,7 @@ export type PipeInput = {
     lang: Language;
 };
 
-async function getTokenCount(model: OllamaGenModel | OpenAIGenModel, content: string) {
+async function getTokenCount(model: GenModel, content: string) {
     if (isOpenAIGenModel(model)) {
         return (await model.lcModel!.getNumTokens(content)) - 100; // - 100 token count is not always exact, so we need to be safe
     } else {
@@ -25,7 +25,7 @@ async function getTokenCount(model: OllamaGenModel | OpenAIGenModel, content: st
     }
 }
 
-export function createRagPipe(retriever: VectorStoreRetriever, model: OllamaGenModel | OpenAIGenModel, input: PipeInput) {
+export function createRagPipe(retriever: VectorStoreRetriever, model: GenModel, input: PipeInput) {
     const ragChain = RunnableSequence.from([
         {
             query: (input: PipeInput) => input.userQuery,
@@ -46,7 +46,7 @@ export function createRagPipe(retriever: VectorStoreRetriever, model: OllamaGenM
     return ragChain;
 }
 
-export function createConversationPipe(model: OllamaGenModel | OpenAIGenModel, input: PipeInput) {
+export function createConversationPipe(model: GenModel, input: PipeInput) {
     const conversationChain = RunnableSequence.from([
         {
             query: (input: PipeInput) => input.userQuery,
@@ -59,7 +59,7 @@ export function createConversationPipe(model: OllamaGenModel | OpenAIGenModel, i
     return conversationChain;
 }
 
-function getDocsPostProcessor(model: OllamaGenModel | OpenAIGenModel, pipeInput: PipeInput) {
+function getDocsPostProcessor(model: GenModel, pipeInput: PipeInput) {
     return async (documents: Document[]) => {
         const tokenMax =
             (model.contextWindow ?? 2048) -
@@ -114,7 +114,7 @@ function getDocsPostProcessor(model: OllamaGenModel | OpenAIGenModel, pipeInput:
     };
 }
 
-function getDocsReducePipe(model: OllamaGenModel | OpenAIGenModel, pipeInput: PipeInput) {
+function getDocsReducePipe(model: GenModel, pipeInput: PipeInput) {
     return async (
         postProcessedResult: { notes: string[]; needsReduce: boolean },
         options?: {

@@ -13,18 +13,7 @@ import { LangChainTracer } from '@langchain/core/tracers/tracer_langchain';
 
 import { IndexingMode, index, unindex } from './Indexing';
 import { getTracer } from './Langsmith';
-import {
-    EmbedModels,
-    GenModels,
-    OllamaEmbedModel,
-    OpenAIEmbedModel,
-    OpenAIGenModel,
-    isOllamaEmbedModel,
-    isOpenAIEmbedModel,
-    isOpenAIGenModel,
-    isOllamaRecommendedGenModel,
-    OllamaGenModel,
-} from './Models';
+import { GenModel, EmbedModel, isOllamaEmbedModel, isOpenAIEmbedModel, isOpenAIGenModel, isOllamaGenModel } from './Models';
 import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
 import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
@@ -32,8 +21,8 @@ import { OramaStore, VectorStoreBackup } from './VectorStore';
 import Log, { LogLvl } from './Logging';
 
 export interface PapaData {
-    genModel: OllamaGenModel | OpenAIGenModel;
-    embedModel: OllamaEmbedModel | OpenAIEmbedModel;
+    genModel: GenModel;
+    embedModel: EmbedModel;
     langsmithApiKey?: string;
     logLvl?: LogLvl;
 }
@@ -46,7 +35,7 @@ export interface PapaResponse {
 export class Papa {
     private vectorStore: OramaStore;
     private retriever: VectorStoreRetriever;
-    private genModel: OllamaGenModel | OpenAIGenModel;
+    private genModel: GenModel;
     private recordManager: DexieRecordManager;
     private tracer?: LangChainTracer;
 
@@ -58,7 +47,7 @@ export class Papa {
         Log.setLogLevel(data.logLvl ?? LogLvl.INFO);
     }
 
-    private async setEmbedModel(embedModel: OllamaEmbedModel | OpenAIEmbedModel) {
+    private async setEmbedModel(embedModel: EmbedModel) {
         if (isOpenAIEmbedModel(embedModel)) {
             this.vectorStore = new OramaStore(new OpenAIEmbeddings({ ...embedModel, modelName: embedModel.model, batchSize: 2048, maxRetries: 0 }), {
                 similarityThreshold: embedModel.similarityThreshold ?? 0.75,
@@ -68,24 +57,18 @@ export class Papa {
                 similarityThreshold: embedModel.similarityThreshold ?? 0.5,
             });
         } else throw new Error('Invalid embedModel');
-        await this.vectorStore.create(embedModel.model, EmbedModels[embedModel.model].vectorSize);
+        await this.vectorStore.create(embedModel.model);
         this.retriever = this.vectorStore.asRetriever({ k: 100 });
     }
 
-    async setGenModel(genModel: OllamaGenModel | OpenAIGenModel) {
+    async setGenModel(genModel: GenModel) {
         this.genModel = genModel;
         // TODO check if context window size already set internally
         if (isOpenAIGenModel(genModel)) {
             this.genModel.lcModel = new ChatOpenAI({ ...genModel, modelName: genModel.model, streaming: true });
-            this.genModel.contextWindow = genModel.contextWindow ?? GenModels[genModel.model].contextWindow;
-        } else {
+        } else if (isOllamaGenModel(genModel)) {
             this.genModel.lcModel = new ChatOllama(genModel);
-            if (isOllamaRecommendedGenModel(genModel)) {
-                this.genModel.contextWindow = genModel.contextWindow ?? GenModels[genModel.model].contextWindow;
-            } else {
-                this.genModel.contextWindow = genModel.contextWindow ?? 2048;
-            }
-        }
+        } else throw new Error('Invalid genModel');
     }
 
     embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {
@@ -146,7 +129,7 @@ export class Papa {
     setTracer(langsmithApiKey: string) {
         this.tracer = getTracer(langsmithApiKey);
     }
-    setLogLevel(verbose: LogLvl) {
+    static setLogLevel(verbose: LogLvl) {
         Log.setLogLevel(verbose);
     }
 }

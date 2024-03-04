@@ -40,13 +40,13 @@ export class OramaStore extends VectorStore {
         this.similarity = args.similarityThreshold || 0.75;
     }
 
-    async create(indexName: string, vectorSize: number) {
+    async create(indexName: string, vectorSize?: number) {
+        this.vectorSize = vectorSize ?? (await this.embeddings.embedQuery('test')).length;
         this.indexName = indexName;
-        this.vectorSize = vectorSize;
         this.db = await create({
             schema: {
                 ...vectorStoreSchema,
-                embedding: `vector[${vectorSize}]`,
+                embedding: `vector[${this.vectorSize}]`,
             } as const,
             id: indexName,
         });
