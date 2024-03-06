@@ -37,7 +37,7 @@ export class OramaStore extends VectorStore {
         args: Record<string, any>
     ) {
         super(embeddings, args);
-        this.similarity = args.similarityThreshold || 0.75;
+        this.similarity = args.similarityThreshold ?? 0.75;
     }
 
     async create(indexName: string, vectorSize?: number) {

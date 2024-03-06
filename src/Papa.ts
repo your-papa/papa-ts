@@ -39,26 +39,30 @@ export class Papa {
     private recordManager: DexieRecordManager;
     private tracer?: LangChainTracer;
 
-    constructor(data: PapaData) {
-        this.setGenModel(data.genModel);
-        this.setEmbedModel(data.embedModel);
+    async init(data: PapaData) {
+        await this.setGenModel(data.genModel);
+        await this.setVectorStore(data.embedModel);
         if (data.langsmithApiKey) this.setTracer(data.langsmithApiKey);
         this.recordManager = new DexieRecordManager('RecordManager');
         Log.setLogLevel(data.logLvl ?? LogLvl.INFO);
     }
 
-    private async setEmbedModel(embedModel: EmbedModel) {
+    private async setVectorStore(embedModel: EmbedModel) {
         if (isOpenAIEmbedModel(embedModel)) {
             this.vectorStore = new OramaStore(new OpenAIEmbeddings({ ...embedModel, modelName: embedModel.model, batchSize: 2048, maxRetries: 0 }), {
-                similarityThreshold: embedModel.similarityThreshold ?? 0.75,
+                similarityThreshold: embedModel.similarityThreshold,
             });
         } else if (isOllamaEmbedModel(embedModel)) {
             this.vectorStore = new OramaStore(new OllamaEmbeddings({ ...embedModel, maxRetries: 0 }), {
-                similarityThreshold: embedModel.similarityThreshold ?? 0.5,
+                similarityThreshold: embedModel.similarityThreshold,
             });
         } else throw new Error('Invalid embedModel');
         await this.vectorStore.create(embedModel.model);
         this.retriever = this.vectorStore.asRetriever({ k: 100 });
+    }
+
+    setSimilarityThreshold(similarityThreshold: number) {
+        this.vectorStore.setSimilarityThreshold(similarityThreshold);
     }
 
     async setGenModel(genModel: GenModel) {
