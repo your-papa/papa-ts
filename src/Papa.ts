@@ -27,8 +27,9 @@ export interface PapaData {
     logLvl?: LogLvl;
 }
 
+export type PapaResponseStatus = 'startup' | 'retrieving' | 'reducing' | 'generating' | 'stopped';
 export interface PapaResponse {
-    status: 'Startup' | 'Retrieving' | 'Reducing' | 'Generating';
+    status: PapaResponseStatus;
     content?: string;
 }
 
@@ -99,20 +100,25 @@ export class Papa {
 
     private async *streamProcessor(responseStream: AsyncGenerator<RunLogPatch>): AsyncGenerator<PapaResponse> {
         let pipeOutput: any = {};
-        let alreadyRetrieved = false;
-        let alreadyReduced = false;
-        let sbResponse: PapaResponse = { status: 'Startup', content: '...' };
+        let retrieving = false;
+        let retrieved = false;
+        let reducing = false;
+        let sbResponse: PapaResponse = { status: 'startup' };
         for await (const response of responseStream) {
             pipeOutput = applyPatch(pipeOutput, response.ops).newDocument;
             // Log.info('Stream Log', structuredClone(pipeOutput));
-            if (!alreadyRetrieved && pipeOutput.logs.Retrieving) {
-                alreadyRetrieved = true;
-                sbResponse = { status: 'Retrieving', content: 'Retrieving...' };
-            } else if (!alreadyReduced && pipeOutput.logs.PPDocs && pipeOutput.logs.PPDocs.final_output && pipeOutput.logs.PPDocs.final_output.needsReduce) {
-                alreadyReduced = true;
-                sbResponse = { status: 'Reducing', content: 'Reducing ' + pipeOutput.logs.PPDocs.final_output.notes.length + ' notes...' };
+            if (!retrieving && pipeOutput.logs.Retrieving) {
+                retrieving = true;
+                sbResponse = { status: 'retrieving' };
+            } else if (!retrieved && pipeOutput.logs.Retrieving?.final_output?.documents) {
+                sbResponse = { status: 'retrieving', content: pipeOutput.logs.Retrieving.final_output.documents.length };
+                console.log('retrieved', pipeOutput.logs.Retrieving);
+                retrieved = true;
+            } else if (!reducing && pipeOutput.logs.PPDocs?.final_output?.needsReduce) {
+                reducing = true;
+                sbResponse = { status: 'reducing', content: pipeOutput.logs.PPDocs.final_output.notes.length };
             } else if (pipeOutput.streamed_output.join('') !== '') {
-                sbResponse = { status: 'Generating', content: pipeOutput.streamed_output.join('') };
+                sbResponse = { status: 'generating', content: pipeOutput.streamed_output.join('') };
             }
             yield sbResponse;
         }
