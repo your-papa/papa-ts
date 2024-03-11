@@ -112,7 +112,6 @@ export class Papa {
                 sbResponse = { status: 'retrieving' };
             } else if (!retrieved && pipeOutput.logs.Retrieving?.final_output?.documents) {
                 sbResponse = { status: 'retrieving', content: pipeOutput.logs.Retrieving.final_output.documents.length };
-                console.log('retrieved', pipeOutput.logs.Retrieving);
                 retrieved = true;
             } else if (!reducing && pipeOutput.logs.PPDocs?.final_output?.needsReduce) {
                 reducing = true;
