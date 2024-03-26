@@ -38,6 +38,7 @@ export class Papa {
     private retriever: VectorStoreRetriever;
     private genModel: GenModel;
     private recordManager: DexieRecordManager;
+    private stopRunFlag = false;
     private tracer?: LangChainTracer;
 
     async init(data: PapaData) {
@@ -102,13 +103,24 @@ export class Papa {
             : this.streamProcessor(createConversationPipe(this.genModel, input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined));
     }
 
+    stopRun() {
+        Log.info('Stopping run...');
+        this.stopRunFlag = true;
+    }
+
     private async *streamProcessor(responseStream: AsyncGenerator<RunLogPatch>): AsyncGenerator<PapaResponse> {
         let pipeOutput: any = {};
         let retrieving = false;
         let retrieved = false;
         let reducing = false;
+        let generatedText = '';
         let sbResponse: PapaResponse = { status: 'startup' };
         for await (const response of responseStream) {
+            if (this.stopRunFlag) {
+                this.stopRunFlag = false;
+                yield { status: 'stopped', content: generatedText };
+                return;
+            }
             pipeOutput = applyPatch(pipeOutput, response.ops).newDocument;
             // Log.info('Stream Log', structuredClone(pipeOutput));
             if (!retrieving && pipeOutput.logs.Retrieving) {
@@ -121,7 +133,8 @@ export class Papa {
                 reducing = true;
                 sbResponse = { status: 'reducing', content: pipeOutput.logs.PPDocs.final_output.notes.length };
             } else if (pipeOutput.streamed_output.join('') !== '') {
-                sbResponse = { status: 'generating', content: pipeOutput.streamed_output.join('') };
+                generatedText = pipeOutput.streamed_output.join('');
+                sbResponse = { status: 'generating', content: generatedText };
             }
             yield sbResponse;
         }
