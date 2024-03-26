@@ -26,6 +26,7 @@ export interface OpenAIEmbedModel {
     model: string;
     openAIApiKey: string;
     similarityThreshold?: number;
+    k?: number;
 }
 export const isOpenAIEmbedModel = (model: EmbedModel): model is OpenAIEmbedModel => {
     return (model as OpenAIEmbedModel).openAIApiKey !== undefined;
@@ -35,6 +36,7 @@ export interface OllamaEmbedModel {
     model: string;
     baseUrl: string;
     similarityThreshold?: number;
+    k?: number;
 }
 export const isOllamaEmbedModel = (model: EmbedModel): model is OllamaEmbedModel => {
     return (model as OllamaEmbedModel).baseUrl !== undefined;

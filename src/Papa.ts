@@ -59,11 +59,15 @@ export class Papa {
             });
         } else throw new Error('Invalid embedModel');
         await this.vectorStore.create(embedModel.model);
-        this.retriever = this.vectorStore.asRetriever({ k: 100 });
+        this.retriever = this.vectorStore.asRetriever({ k: embedModel.k ?? 100 });
     }
 
     setSimilarityThreshold(similarityThreshold: number) {
         this.vectorStore.setSimilarityThreshold(similarityThreshold);
+    }
+
+    setNumOfDocsToRetrieve(k: number) {
+        this.retriever = this.vectorStore.asRetriever({ k });
     }
 
     async setGenModel(genModel: GenModel) {
