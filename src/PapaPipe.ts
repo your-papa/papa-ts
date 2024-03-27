@@ -19,9 +19,9 @@ export type PipeInput = {
 
 async function getTokenCount(model: GenModel, content: string) {
     if (isOpenAIGenModel(model)) {
-        return (await model.lcModel!.getNumTokens(content)) - 100; // - 100 token count is not always exact, so we need to be safe
+        return await model.lcModel!.getNumTokens(content);
     } else {
-        return (llamaTokenizer.encode(content) || []).length - 100; // - 100 token count is not always exact, so we need to be safe
+        return (llamaTokenizer.encode(content) || []).length;
     }
 }
 
@@ -63,6 +63,7 @@ function getDocsPostProcessor(model: GenModel, pipeInput: PipeInput) {
     return async (documents: Document[]) => {
         const tokenMax =
             (model.contextWindow ?? 2048) -
+            100 - // - 100 token count is not always exact, so we need to be safe
             (await getTokenCount(
                 model,
                 (await PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce).formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString()
@@ -101,9 +102,10 @@ function getDocsPostProcessor(model: GenModel, pipeInput: PipeInput) {
             const hasMultipleParts = splitedContents.length > 1;
             splitedContents.forEach((contents, i) => {
                 let content = '';
-                content += '------\n';
-                content += 'Note Path: ' + filepath.replace('.md', '') + (hasMultipleParts ? ' Part ' + (i + 1) : '') + '\n';
+                content += '<note>\n';
+                content += 'Wikilink: [[' + filepath.replace('.md', '') + ']]' + (hasMultipleParts ? ' Part ' + (i + 1) : '') + '\n';
                 content += contents.join('\n\n');
+                content += '\n</note>';
                 processedDocuments.push(content);
             });
         }
@@ -128,6 +130,7 @@ function getDocsReducePipe(model: GenModel, pipeInput: PipeInput) {
 
         const tokenMax =
             (model.contextWindow ?? 2048) -
+            100 - // - 100 token count is not always exact, so we need to be safe
             (await getTokenCount(
                 model,
                 (await PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce).formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString()
