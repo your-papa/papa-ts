@@ -73,6 +73,7 @@ export class Papa {
 
     async setGenModel(genModel: GenModel) {
         this.genModel = genModel;
+        this.genModel.contextWindow = (genModel.contextWindow ?? 2048) - 100; // - 100 token count is not always exact, so we need to be safe
         // TODO check if context window size already set internally
         if (isOpenAIGenModel(genModel)) {
             this.genModel.lcModel = new ChatOpenAI({ ...genModel, modelName: genModel.model, streaming: true });

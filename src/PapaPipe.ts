@@ -39,7 +39,7 @@ export function createRagPipe(retriever: VectorStoreRetriever, model: GenModel, 
                     .pipe(getDocsReducePipe(model, input)),
             ]).withConfig({ runName: 'Retrieving Notes' }),
         },
-        PromptTemplate.fromTemplate(Prompts[input.lang].rag),
+        getPreprocessPromptPipe(model, input),
         model.lcModel!,
         new StringOutputParser(),
     ]).withConfig({ runName: 'RAG Chat Pipe' });
@@ -61,13 +61,12 @@ export function createConversationPipe(model: GenModel, input: PipeInput) {
 
 function getDocsPostProcessor(model: GenModel, pipeInput: PipeInput) {
     return async (documents: Document[]) => {
-        const tokenMax =
-            (model.contextWindow ?? 2048) -
-            100 - // - 100 token count is not always exact, so we need to be safe
-            (await getTokenCount(
-                model,
-                (await PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce).formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString()
-            ));
+        // TODO add a check for the userQuery length
+        const reducePrompt = (
+            await PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce).formatPromptValue({ query: pipeInput.userQuery, content: '' })
+        ).toString();
+        const tokenMax = model.contextWindow! - (await getTokenCount(model, reducePrompt));
+
         Log.debug('Retrieved Docs', documents);
         // group documents by filepath
         const documentsByFilepath: Record<string, Document[]> = {};
@@ -128,13 +127,10 @@ function getDocsReducePipe(model: GenModel, pipeInput: PipeInput) {
         let contents = postProcessedResult.notes;
         let reduceCount = 0;
 
-        const tokenMax =
-            (model.contextWindow ?? 2048) -
-            100 - // - 100 token count is not always exact, so we need to be safe
-            (await getTokenCount(
-                model,
-                (await PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce).formatPromptValue({ query: pipeInput.userQuery, content: '' })).toString()
-            ));
+        const reducePrompt = (
+            await PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce).formatPromptValue({ query: pipeInput.userQuery, content: '' })
+        ).toString();
+        const tokenMax = model.contextWindow! - (await getTokenCount(model, reducePrompt));
 
         do {
             if (editableConfig) editableConfig.runName = `Reduce ${reduceCount + 1}`;
@@ -165,11 +161,22 @@ async function splitContents(contents: string[], getNumTokens: (content: string)
         const numTokens = await getNumTokens(subResultContents.join('\n\n'));
         if (numTokens > tokenMax) {
             if (subResultContents.length === 1)
-                throw new Error('A single document was longer than the context length. Should not happen as we split documents by length in post processing!');
+                throw new Error(
+                    'User query is too long or a single document was longer than the context length (should not happen as we split documents by length in post processing).'
+                );
             splitContents.push(subResultContents.slice(0, -1));
             subResultContents = subResultContents.slice(-1);
         }
     }
     splitContents.push(subResultContents);
     return splitContents;
+}
+
+function getPreprocessPromptPipe(model: GenModel, input: PipeInput) {
+    return async ({ query, chatHistory, context }: { query: string; chatHistory: string; context: string }) => {
+        const ragPrompt = (await PromptTemplate.fromTemplate(Prompts[input.lang].rag).formatPromptValue({ query, context, chatHistory })).toString();
+        if (model.contextWindow! > (await getTokenCount(model, ragPrompt))) return ragPrompt;
+        // TODO: if the chathistory or the input is too long, we should summarize
+        return "Please echo 'The chathistory is too long, please create a new chat or summarize it.'";
+    };
 }
