@@ -83,6 +83,47 @@ Response:`,
 </query>
 Response:`,
     },
+    'fr': {
+        initialAssistantMessage: `Bonjour, je suis votre assistant. Comment puis-je vous aider?`,
+        createTitle: `Créez un titre très court comme résumé de la conversation suivante (encadrée par des balises XML), de sorte qu'il puisse être utilisé directement comme nom de fichier. Le titre ne peut contenir que des lettres et des espaces.
+<conversation>
+{chatHistory}
+</conversation>
+Titre:`,
+        initialReduce: `Résumez mes notes (encadrées par des balises XML) de manière à ce que la question "{query}" puisse encore être répondue en détail par la suite.
+Résumez uniquement les notes qui pourraient contribuer à répondre à la question et ignorez les autres sans les mentionner davantage.
+Assurez-vous d'inclure le wikilink (format: [[<Note Path><# Header1><## Header2>...]]) à la note comme référence pour chaque note résumée.
+<notes>
+{content}
+</notes>
+Résumé:`,
+        reduce: `Résumez mes notes (encadrées par des balises XML) de manière à ce que la question "{query}" puisse encore être répondue en détail par la suite.
+Veillez à conserver la mise en forme markdown et les wikilinks (format: [[<Note>]]) dans les notes.
+<notes>
+{content}
+</notes>
+Résumé:`,
+        rag: `En tant qu'assistant, veuillez répondre à ma question en utilisant uniquement mes connaissances existantes (encadrées par des balises XML) provenant d'Obsidian.
+Assurez-vous d'utiliser la mise en forme Markdown et d'ajouter les wikilinks (format: [[<Note>]]) des connaissances comme référence à votre réponse.
+<knowledge>
+{context}
+</knowledge>
+<chathistory>
+{chatHistory}
+</chathistory>
+<query>
+{query}
+</query>
+Réponse:`,
+        conversation: `Répondez à ma question en tant qu'assistant basé sur l'historique du chat.
+<chathistory>
+{chatHistory}
+</chathistory>
+<query>
+{query}
+</query>
+Réponse:`,
+    },
 };
 
 export type Language = keyof typeof Prompts;
