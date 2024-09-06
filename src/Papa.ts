@@ -5,7 +5,6 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { RunLogPatch } from '@langchain/core/tracers/log_stream';
 import { VectorStoreRetriever } from '@langchain/core/vectorstores';
-import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { OllamaEmbeddings } from '@langchain/community/embeddings/ollama';
 import { decode, encode } from '@msgpack/msgpack';
 import { applyPatch } from 'fast-json-patch';
@@ -13,7 +12,7 @@ import { LangChainTracer } from '@langchain/core/tracers/tracer_langchain';
 
 import { IndexingMode, index, unindex } from './Indexing';
 import { getTracer } from './Langsmith';
-import { GenModel, EmbedModel, isOllamaEmbedModel, isOpenAIEmbedModel, isOpenAIGenModel, isOllamaGenModel } from './Models';
+import { GenModel, EmbedModel } from './Models';
 import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
 import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
@@ -50,17 +49,9 @@ export class Papa {
     }
 
     private async setVectorStore(embedModel: EmbedModel) {
-        if (isOpenAIEmbedModel(embedModel)) {
-            this.vectorStore = new OramaStore(new OpenAIEmbeddings({ ...embedModel, modelName: embedModel.model, batchSize: 2048, maxRetries: 0 }), {
-                similarityThreshold: embedModel.similarityThreshold,
-            });
-        } else if (isOllamaEmbedModel(embedModel)) {
-            this.vectorStore = new OramaStore(new OllamaEmbeddings({ ...embedModel, maxRetries: 0 }), {
-                similarityThreshold: embedModel.similarityThreshold,
-            });
-        } else throw new Error('Invalid embedModel');
-        await this.vectorStore.create(embedModel.model);
-        this.retriever = this.vectorStore.asRetriever({ k: embedModel.k ?? 100 });
+        this.vectorStore = new OramaStore(embedModel.lcModel, { similarityThreshold: embedModel.similarityThreshold });
+        await this.vectorStore.create(embedModel.lcModel.toString());
+        this.retriever = this.vectorStore.asRetriever({ k: embedModel.k });
     }
 
     setSimilarityThreshold(similarityThreshold: number) {
@@ -73,13 +64,6 @@ export class Papa {
 
     async setGenModel(genModel: GenModel) {
         this.genModel = genModel;
-        this.genModel.contextWindow = (genModel.contextWindow ?? 2048) - 100; // - 100 token count is not always exact, so we need to be safe
-        // TODO check if context window size already set internally
-        if (isOpenAIGenModel(genModel)) {
-            this.genModel.lcModel = new ChatOpenAI({ ...genModel, modelName: genModel.model, streaming: true });
-        } else if (isOllamaGenModel(genModel)) {
-            this.genModel.lcModel = new ChatOllama(genModel);
-        } else throw new Error('Invalid genModel');
     }
 
     embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {

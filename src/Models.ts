@@ -1,4 +1,5 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { Embeddings, type EmbeddingsParams } from '@langchain/core/embeddings';
 
 export interface OpenAIGenModel {
     model: string;
@@ -7,9 +8,6 @@ export interface OpenAIGenModel {
     lcModel?: BaseChatModel;
     contextWindow?: number;
 }
-export const isOpenAIGenModel = (model: GenModel): model is OpenAIGenModel => {
-    return (model as OpenAIGenModel).openAIApiKey !== undefined;
-};
 
 export interface OllamaGenModel {
     model: string;
@@ -18,9 +16,6 @@ export interface OllamaGenModel {
     lcModel?: BaseChatModel;
     contextWindow?: number;
 }
-export const isOllamaGenModel = (model: GenModel): model is OllamaGenModel => {
-    return (model as OllamaGenModel).baseUrl !== undefined;
-};
 
 export interface OpenAIEmbedModel {
     model: string;
@@ -28,19 +23,19 @@ export interface OpenAIEmbedModel {
     similarityThreshold?: number;
     k?: number;
 }
-export const isOpenAIEmbedModel = (model: EmbedModel): model is OpenAIEmbedModel => {
-    return (model as OpenAIEmbedModel).openAIApiKey !== undefined;
-};
 
 export interface OllamaEmbedModel {
-    model: string;
-    baseUrl: string;
-    similarityThreshold?: number;
-    k?: number;
+    lcModel: BaseChatModel;
+    similarityThreshold: number;
+    k: number;
 }
-export const isOllamaEmbedModel = (model: EmbedModel): model is OllamaEmbedModel => {
-    return (model as OllamaEmbedModel).baseUrl !== undefined;
-};
 
-export type GenModel = OllamaGenModel | OpenAIGenModel;
-export type EmbedModel = OllamaEmbedModel | OpenAIEmbedModel;
+export type GenModel = {
+    lcModel: BaseChatModel;
+    contextWindow: number;
+};
+export type EmbedModel = {
+    lcModel: Embeddings;
+    similarityThreshold: number;
+    k: number;
+};

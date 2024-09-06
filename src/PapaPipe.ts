@@ -8,7 +8,7 @@ import llamaTokenizer from 'llama-tokenizer-js';
 
 import { Language, Prompts } from './Prompts';
 import Log from './Logging';
-import { GenModel, isOpenAIGenModel } from './Models';
+import { GenModel } from './Models';
 
 export type PipeInput = {
     isRAG: boolean;
@@ -18,11 +18,11 @@ export type PipeInput = {
 };
 
 async function getTokenCount(model: GenModel, content: string) {
-    if (isOpenAIGenModel(model)) {
-        return await model.lcModel!.getNumTokens(content);
-    } else {
-        return (llamaTokenizer.encode(content) || []).length;
-    }
+    // if (isOpenAIGenModel(model)) {
+    //     return await model.lcModel!.getNumTokens(content);
+    // } else {
+    return (llamaTokenizer.encode(content) || []).length;
+    //}
 }
 
 export function createRagPipe(retriever: VectorStoreRetriever, model: GenModel, input: PipeInput) {
