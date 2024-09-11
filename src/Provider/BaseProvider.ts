@@ -1,9 +1,31 @@
 import { EmbedModel, GenModel } from '../Models';
 
 export const providerNames = ['OpenAI', 'Ollama'];
-export type ProviderName = (typeof providerNames)[number];
 
-export type ProviderSettings<TSettings> = TSettings & {
+export type ProviderNames = (typeof providerNames)[number];
+
+export type GenModels = {
+    [key: string]: GenModelSettings;
+};
+
+export type EmbedModels = {
+    [key: string]: EmbedModelSettings;
+};
+
+export type GenModelSettings = {
+    temperature: number;
+    contextWindow: number;
+};
+
+export type EmbedModelSettings = {
+    similarityThreshold: number;
+};
+type AtLeastOne<T> = {
+    [K in keyof T]: Pick<T, K> & Partial<Omit<T, K>>;
+}[keyof T];
+
+export type ProviderSettings<TSettings> = {
+    connectionArgs: TSettings;
     selectedEmbedModel: string;
     selectedGenModel: string;
     embedModels: EmbedModels;
@@ -20,8 +42,41 @@ export abstract class BaseProvider<TSettings> {
 
     abstract isSetuped(): Promise<boolean>;
 
-    setConnectionArgs(connectionArgs: TSettings): TSettings {
-        this.connectionArgs = connectionArgs;
+    getSelEmbedModel(): string {
+        return this.selectedEmbedModel;
+    }
+
+    getSelGenModel(): string {
+        return this.selectedGenModel;
+    }
+
+    getEmbedModels(): EmbedModels {
+        return this.embedModels;
+    }
+
+    getGenModels(): GenModels {
+        return this.genModels;
+    }
+
+    //add active model check?
+    setSelEmbedModel(model: string): string | null {
+        if (!(model in this.embedModels)) {
+            return null;
+        }
+        this.selectedEmbedModel = model;
+        return model;
+    }
+
+    setSelGenModel(model: string): string | null {
+        if (!(model in this.genModels)) {
+            return null;
+        }
+        this.selectedGenModel = model;
+        return model;
+    }
+
+    setConnectionArgs(partialUpdates: AtLeastOne<TSettings>): TSettings {
+        this.connectionArgs = { ...this.connectionArgs, ...partialUpdates };
         return this.connectionArgs;
     }
 
@@ -61,14 +116,6 @@ export abstract class BaseProvider<TSettings> {
         return settings;
     }
 
-    updateGenModel(model: string, settings: GenModelSettings): GenModelSettings | null {
-        if (this.genModels[model]) {
-            this.genModels[model] = settings;
-            return settings;
-        }
-        return null;
-    }
-
     updateEmbedModel(model: string, settings: EmbedModelSettings): EmbedModelSettings | null {
         if (this.embedModels[model]) {
             this.embedModels[model] = settings;
@@ -77,41 +124,15 @@ export abstract class BaseProvider<TSettings> {
         return null;
     }
 
-    //add active model check?
-    setSelectedEmbedModel(model: string): string | null {
-        if (!(model in this.embedModels)) {
-            return null;
+    updateGenModel(model: string, settings: GenModelSettings): GenModelSettings | null {
+        if (this.genModels[model]) {
+            this.genModels[model] = settings;
+            return settings;
         }
-        this.selectedEmbedModel = model;
-        return model;
-    }
-
-    setSelectedGenModel(model: string): string | null {
-        if (!(model in this.genModels)) {
-            return null;
-        }
-        this.selectedGenModel = model;
-        return model;
+        return null;
     }
 
     abstract createEmbedModel(k: number): EmbedModel;
 
     abstract createGenModel(): GenModel;
 }
-
-export type GenModels = {
-    [key: string]: GenModelSettings;
-};
-
-export type EmbedModels = {
-    [key: string]: EmbedModelSettings;
-};
-
-export type GenModelSettings = {
-    temperature: number;
-    contextWindow: number;
-};
-
-export type EmbedModelSettings = {
-    similarityThreshold: number;
-};

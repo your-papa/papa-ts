@@ -4,8 +4,10 @@ import { EmbedModel, GenModel } from '../Models';
 import { OllamaEmbeddings } from '@langchain/community/embeddings/ollama';
 import { ChatOllama } from '@langchain/community/chat_models/ollama';
 
-const OLLAMADEFAULT = {
-    baseurl: 'https://localhost:11434',
+export const OLLAMADEFAULT: ProviderSettings<OllamaSettings> = {
+    connectionArgs: {
+        baseUrl: 'https://localhost:11434',
+    },
     selectedEmbedModel: 'mxbai-embed-large',
     selectedGenModel: 'llama2',
     embedModels: {

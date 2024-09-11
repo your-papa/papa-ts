@@ -3,8 +3,10 @@ import { EmbedModel, GenModel } from '../Models';
 import { BaseProvider, ProviderSettings } from './BaseProvider';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 
-const OPENAIDEFAULT = {
-    apiKey: '',
+export const OPENAIDEFAULT: ProviderSettings<OpenAISettings> = {
+    connectionArgs: {
+        apiKey: '',
+    },
     selectedEmbedModel: 'text-embedding-3-large',
     selectedGenModel: 'gpt-4o-mini',
     embedModels: {
@@ -56,8 +58,9 @@ export class OpenAIProvider extends BaseProvider<OpenAISettings> {
                     Authorization: `Bearer ${this.connectionArgs.apiKey}`,
                 },
             });
-            const modelData = await modelRes.json();
-            return modelData;
+            const modelJson = await modelRes.json();
+            const modelData = modelJson.data;
+            return modelData.map((model: any) => model.id);
         } catch (error) {
             Log.debug('OpenAI is not running', error);
             return [];
@@ -65,14 +68,14 @@ export class OpenAIProvider extends BaseProvider<OpenAISettings> {
     }
 
     createEmbedModel(k: number): EmbedModel {
-        const langChainModel = new OpenAIEmbeddings({ apiKey: this.connectionArgs.apiKey, model: this.selectedEmbedModel, batchSize: 2048 });
+        const langChainModel = new OpenAIEmbeddings({ openAIApiKey: this.connectionArgs.apiKey, modelName: this.selectedEmbedModel, batchSize: 2048 });
         return { lcModel: langChainModel, similarityThreshold: this.embedModels[this.selectedEmbedModel].similarityThreshold, k };
     }
 
     createGenModel(): GenModel {
         const langChainModel = new ChatOpenAI({
-            apiKey: this.connectionArgs.apiKey,
-            model: this.selectedGenModel,
+            openAIApiKey: this.connectionArgs.apiKey,
+            modelName: this.selectedGenModel,
             temperature: this.genModels[this.selectedGenModel].temperature,
             streaming: true,
         });

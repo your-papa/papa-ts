@@ -2,9 +2,10 @@ import { Papa, PapaData, PapaResponseStatus } from './Papa';
 import { obsidianDocumentLoader } from './ObsidianDocumentLoader';
 import { Language, Languages, Prompts } from './Prompts';
 import { LogLvl } from './Logging';
-import { OpenAIGenModel, OpenAIEmbedModel, OllamaGenModel, OllamaEmbedModel, GenModel, EmbedModel } from './Models';
-import { OllamaProvider } from './Provider/Ollama';
-import { BaseProvider } from './Provider/BaseProvider';
+import { BaseProvider, ProviderSettings, ProviderNames, providerNames } from './Provider/BaseProvider';
+import { OllamaProvider, OllamaSettings, OLLAMADEFAULT } from './Provider/Ollama';
+import { OpenAIProvider, OpenAISettings, OPENAIDEFAULT } from './Provider/OpenAI';
+import { providerFactory, EmbedProvider } from './Provider/ProviderFactory';
 
 export {
     Papa,
@@ -15,12 +16,16 @@ export {
     Language,
     Languages,
     LogLvl,
-    GenModel,
-    EmbedModel,
-    OpenAIGenModel,
-    OpenAIEmbedModel,
-    OllamaGenModel,
-    OllamaEmbedModel,
-    OllamaProvider,
     BaseProvider,
+    ProviderSettings,
+    OllamaProvider,
+    OpenAISettings,
+    OllamaSettings,
+    OpenAIProvider,
+    ProviderNames as ProviderName,
+    providerNames,
+    providerFactory,
+    OLLAMADEFAULT,
+    OPENAIDEFAULT,
+    EmbedProvider,
 };
