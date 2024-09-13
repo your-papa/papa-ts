@@ -124,6 +124,43 @@ Réponse:`,
 </query>
 Réponse:`,
     },
+    zh:{
+        initialAssistantMessage: `你好，我是你的助手。我能帮你什么？`,
+        createTitle: `创建一个非常简短的标题，作为以下对话的总结（用XML标签括起来），以便可以直接用作文件名。标题只能由字母和空格组成。
+        <conversation> 
+        {chatHistory}
+         </conversation> 
+         标题：`,
+        initialReduce: `总结我的笔记（用XML标签括起来），以便问题 "{query}" 之后仍然可以详细回答。仅总结那些能有助于回答问题的笔记，跳过其他内容而不再提及。确保包含维基链接（格式：[[<Note Path><# Header1><## Header2>...]])作为每个总结笔记的参考。
+        <notes> 
+        {content} 
+        </notes> 
+        总结：`,
+        reduce: `总结我的笔记（用XML标签括起来），以便问题 "{query}" 之后仍然可以详细回答。确保保留笔记的Markdown和维基链接格式（格式：[[<Note>]]）。
+        <notes> 
+        {content} 
+        </notes> 
+        总结：`,
+        rag: `作为我的助手，请根据我在Obsidian中的现有知识（用XML标签括起来）回答我的问题。确保使用Markdown格式，并添加维基链接（格式：[[<Note>]]）作为你回答的参考。
+        <knowledge> 
+        {context} 
+        </knowledge> 
+        <chathistory> 
+        {chatHistory} 
+        </chathistory> 
+        <query> 
+        {query} 
+        </query> 
+        回应：`,
+        conversation: `作为我的助手，根据聊天记录回应我的问题。
+        <chathistory> 
+        {chatHistory} 
+        </chathistory> 
+        <query> 
+        {query} 
+        </query> 
+        回答：`
+      }
 };
 
 export type Language = keyof typeof Prompts;
