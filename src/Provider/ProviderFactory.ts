@@ -16,9 +16,41 @@ export function providerFactory(provider: string, args: ProviderSettings<Setting
 
 export class EmbedProvider {
     constructor(private provider: BaseProvider<Settings>) {}
-    async getModels() {
+
+    async getModels(): Promise<string[]> {
         const models = await this.provider.getModels();
         const embedModels = this.provider.getEmbedModels();
         return models.filter((model) => model in embedModels);
+    }
+    getSelectedModel(): string {
+        return this.provider.getSelEmbedModel();
+    }
+
+    async isSetuped(): Promise<boolean> {
+        return this.provider.isSetuped();
+    }
+
+    setSelectedModel(model: string) {
+        this.provider.setSelEmbedModel(model);
+    }
+}
+
+export class GenProvider {
+    constructor(private provider: BaseProvider<Settings>) {}
+    async getModels() {
+        const models = await this.provider.getModels();
+        const genModels = this.provider.getGenModels();
+        return models.filter((model) => model in genModels);
+    }
+    getSelectedModel(): string {
+        return this.provider.getSelGenModel();
+    }
+
+    async isSetuped(): Promise<boolean> {
+        return this.provider.isSetuped();
+    }
+
+    setSelectedModel(model: string) {
+        this.provider.setSelGenModel(model);
     }
 }

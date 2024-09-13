@@ -56,12 +56,12 @@ export class OllamaProvider extends BaseProvider<OllamaSettings> {
         }
     }
 
-    setConnectionArgs(connectionArgs: OllamaSettings): OllamaSettings {
+    setConnectionArgs(connectionArgs: OllamaSettings): { connectionArgs: OllamaSettings } {
         let baseUrl = connectionArgs.baseUrl;
         baseUrl.trim();
         if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
         this.connectionArgs.baseUrl = baseUrl;
-        return { baseUrl: this.connectionArgs.baseUrl };
+        return { connectionArgs: this.connectionArgs };
         // papaState.set('settings-change');
     }
 

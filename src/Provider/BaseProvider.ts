@@ -75,9 +75,9 @@ export abstract class BaseProvider<TSettings> {
         return model;
     }
 
-    setConnectionArgs(partialUpdates: AtLeastOne<TSettings>): TSettings {
+    setConnectionArgs(partialUpdates: AtLeastOne<TSettings>): { connectionArgs: TSettings } {
         this.connectionArgs = { ...this.connectionArgs, ...partialUpdates };
-        return this.connectionArgs;
+        return { connectionArgs: this.connectionArgs };
     }
 
     getConnectionArgs(): TSettings {

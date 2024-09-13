@@ -5,7 +5,7 @@ import { LogLvl } from './Logging';
 import { BaseProvider, ProviderSettings, ProviderNames, providerNames } from './Provider/BaseProvider';
 import { OllamaProvider, OllamaSettings, OLLAMADEFAULT } from './Provider/Ollama';
 import { OpenAIProvider, OpenAISettings, OPENAIDEFAULT } from './Provider/OpenAI';
-import { providerFactory, EmbedProvider } from './Provider/ProviderFactory';
+import { providerFactory, EmbedProvider, GenProvider } from './Provider/ProviderFactory';
 
 export {
     Papa,
@@ -28,4 +28,5 @@ export {
     OLLAMADEFAULT,
     OPENAIDEFAULT,
     EmbedProvider,
+    GenProvider,
 };
