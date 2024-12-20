@@ -1,5 +1,5 @@
 import { Client } from 'langsmith';
-import { LangChainTracer } from 'langchain/callbacks';
+import { LangChainTracer } from '@langchain/core/tracers/tracer_langchain';
 
 export const getTracer = (langsmithApiKey: string) => {
     const client = new Client({

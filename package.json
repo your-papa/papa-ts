@@ -31,21 +31,26 @@
     },
     "homepage": "https://github.com/your-papa/papa-ts#readme",
     "devDependencies": {
-        "@types/node": "^20.8.7",
+        "@types/node": "^22.8.7",
+        "obsidian": "^1.4.11",
         "ts-node": "^10.9.1",
-        "tsup": "^7.2.0",
-        "typescript": "^5.2.2",
-        "obsidian": "^1.4.11"
+        "tsup": "^8.2.0",
+        "typescript": "^5.2.2"
     },
     "dependencies": {
+        "@codemirror/state": "^6.0.0",
+        "@codemirror/view": "^6.0.0",
+        "@langchain/core": "^0.3.26",
+        "@langchain/ollama": "^0.1.4",
         "@msgpack/msgpack": "^3.0.0-beta2",
-        "@orama/orama": "^2.0.1",
-        "@orama/plugin-data-persistence": "^2.0.1",
-        "dexie": "^3.2.4",
+        "@orama/orama": "^3.0.1",
+        "@orama/plugin-data-persistence": "^3.0.1",
+        "dexie": "^4.0.0",
         "dotenv": "^16.3.1",
+        "esbuild": "0.24.0",
         "fast-json-patch": "^3.1.1",
         "graphql": "^16.8.1",
-        "langchain": "^0.1.2",
+        "langchain": "^0.3.0",
         "llama-tokenizer-js": "^1.1.3"
     }
 }

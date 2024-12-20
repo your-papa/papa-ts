@@ -1,11 +1,10 @@
-import { ChatOllama } from '@langchain/community/chat_models/ollama';
+import { ChatOllama, OllamaEmbeddings } from '@langchain/ollama';
 import { Document } from '@langchain/core/documents';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { RunLogPatch } from '@langchain/core/tracers/log_stream';
 import { VectorStoreRetriever } from '@langchain/core/vectorstores';
-import { OllamaEmbeddings } from '@langchain/community/embeddings/ollama';
 import { decode, encode } from '@msgpack/msgpack';
 import { applyPatch } from 'fast-json-patch';
 import { LangChainTracer } from '@langchain/core/tracers/tracer_langchain';

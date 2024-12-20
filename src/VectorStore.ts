@@ -43,7 +43,7 @@ export class OramaStore extends VectorStore {
     async create(indexName: string, vectorSize?: number) {
         this.vectorSize = vectorSize ?? (await this.embeddings.embedQuery('test')).length;
         this.indexName = indexName;
-        this.db = await create({
+        this.db = create({
             schema: {
                 ...vectorStoreSchema,
                 embedding: `vector[${this.vectorSize}]`,
@@ -57,13 +57,13 @@ export class OramaStore extends VectorStore {
         // vectorStoreBackup is an object and not an array for some reason
         const docs = Object.keys(vectorStoreBackup.docs).map((key) => vectorStoreBackup.docs[key]);
         await this.create(vectorStoreBackup.indexName, vectorStoreBackup.vectorSize);
-        await insertMultiple(this.db, docs);
+        insertMultiple(this.db, docs);
         Log.info('Restored vectorstore from backup');
         Log.debug(this.db.data.docs.docs);
     }
 
     async delete(filters: { ids: string[] }) {
-        await removeMultiple(this.db, filters.ids);
+        removeMultiple(this.db, filters.ids);
     }
 
     async addVectors(vectors: number[][], documents: Document[]) {
@@ -76,7 +76,7 @@ export class OramaStore extends VectorStore {
             embedding: vectors[index],
         }));
 
-        const ids = await insertMultiple(this.db, docs);
+        const ids = insertMultiple(this.db, docs);
         return ids;
     }
 

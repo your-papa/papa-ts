@@ -1,8 +1,7 @@
 import { BaseProvider, type EmbedModelSettings, type GenModelSettings, type EmbedModels, type GenModels, ProviderSettings } from './BaseProvider';
 import Log from '../Logging';
 import { EmbedModel, GenModel } from '../Models';
-import { OllamaEmbeddings } from '@langchain/community/embeddings/ollama';
-import { ChatOllama } from '@langchain/community/chat_models/ollama';
+import { ChatOllama, OllamaEmbeddings } from '@langchain/ollama';
 
 export const OLLAMADEFAULT: ProviderSettings<OllamaSettings> = {
     connectionArgs: {

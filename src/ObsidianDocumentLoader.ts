@@ -1,5 +1,5 @@
 import { Document } from '@langchain/core/documents';
-import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import { App, TFile } from 'obsidian';
 import crypto from 'crypto';
 
