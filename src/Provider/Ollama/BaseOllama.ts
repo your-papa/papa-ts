@@ -1,46 +1,22 @@
-import { BaseProvider, type EmbedModelSettings, type GenModelSettings, type EmbedModels, type GenModels, ProviderSettings } from './BaseProvider';
-import Log from '../Logging';
-import { EmbedModel, GenModel } from '../Models';
-import { ChatOllama, OllamaEmbeddings } from '@langchain/ollama';
+import { BaseProvider } from "../BaseProvider";
+import Log from "../../Logging";
 
-export const OLLAMADEFAULT: ProviderSettings<OllamaSettings> = {
-    connectionArgs: {
-        baseUrl: 'https://localhost:11434',
-    },
-    selectedEmbedModel: 'mxbai-embed-large',
-    selectedGenModel: 'llama2',
-    embedModels: {
-        'nomic-embed-text': { similarityThreshold: 0.5 },
-        'mxbai-embed-large': { similarityThreshold: 0.5 },
-    },
-    genModels: {
-        llama2: { temperature: 0.5, contextWindow: 4096 },
-        'llama2-uncensored': { temperature: 0.5, contextWindow: 4096 },
-        mistral: { temperature: 0.5, contextWindow: 8000 },
-        'mistral-openorca': { temperature: 0.5, contextWindow: 8000 },
-        gemma: { temperature: 0.5, contextWindow: 8000 },
-        mixtral: { temperature: 0.5, contextWindow: 32000 },
-        'dolphin-mixtral': { temperature: 0.5, contextWindow: 32000 },
-        phi: { temperature: 0.5, contextWindow: 2048 },
-    },
-};
-
-export type OllamaSettings = {
+export type OllamaConfig = {
     baseUrl: string;
 };
-
-export class OllamaProvider extends BaseProvider<OllamaSettings> {
+export class OllamaProvider extends BaseProvider<OllamaConfig> {
     readonly isLocal = true;
+    // base_url = https://localhost:11434
 
-    constructor(ollamaKwargs: ProviderSettings<OllamaSettings>) {
+    constructor(ollamaKwargs: OllamaConfig) {
         super();
         Object.assign(this, ollamaKwargs);
     }
 
     async isSetuped(): Promise<boolean> {
         try {
-            new URL(this.connectionArgs.baseUrl);
-            const response = await fetch(this.connectionArgs.baseUrl + '/api/tags');
+            new URL(this.connectionConfig.baseUrl);
+            const response = await fetch(this.connectionConfig.baseUrl + '/api/tags');
             if (response.status === 200) {
                 return true;
             } else {
@@ -55,18 +31,18 @@ export class OllamaProvider extends BaseProvider<OllamaSettings> {
         }
     }
 
-    setConnectionArgs(connectionArgs: OllamaSettings): { connectionArgs: OllamaSettings } {
+    setConnectionConfig(connectionArgs: OllamaConfig): { connectionArgs: OllamaConfig } {
         let baseUrl = connectionArgs.baseUrl;
         baseUrl.trim();
         if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-        this.connectionArgs.baseUrl = baseUrl;
-        return { connectionArgs: this.connectionArgs };
+        this.connectionConfig.baseUrl = baseUrl;
+        return { connectionArgs: this.connectionConfig };
         // papaState.set('settings-change');
     }
 
     async getModels(): Promise<string[]> {
         try {
-            const modelsRes = await fetch(this.connectionArgs.baseUrl + '/api/tags');
+            const modelsRes = await fetch(this.connectionConfig.baseUrl + '/api/tags');
             const modelsData = await modelsRes.json();
             const models: string[] = modelsData.map((model: { name: string }) => model.name);
             return models.map((model: string) => model.replace(':latest', ''));
@@ -76,23 +52,9 @@ export class OllamaProvider extends BaseProvider<OllamaSettings> {
         }
     }
 
-    createEmbedModel(k: number): EmbedModel {
-        const langchainEmbedModel = new OllamaEmbeddings({ baseUrl: this.connectionArgs.baseUrl, model: this.selectedEmbedModel });
-        return { lcModel: langchainEmbedModel, similarityThreshold: this.embedModels[this.selectedEmbedModel].similarityThreshold, k: k };
-    }
-
-    createGenModel(): GenModel {
-        const langchainGenModel = new ChatOllama({
-            baseUrl: this.connectionArgs.baseUrl,
-            model: this.selectedGenModel,
-            temperature: this.genModels[this.selectedGenModel].temperature,
-        });
-        return { lcModel: langchainGenModel, contextWindow: this.genModels[this.selectedGenModel].contextWindow };
-    }
-
     async deleteOllamaModel(model: string): Promise<boolean> {
         try {
-            const modelsRes = await fetch(`${this.connectionArgs.baseUrl}/api/pull`);
+            const modelsRes = await fetch(`${this.connectionConfig.baseUrl}/api/pull`);
             if (modelsRes.status === 404) {
                 Log.debug('No models installed');
                 return false;
@@ -110,7 +72,7 @@ export class OllamaProvider extends BaseProvider<OllamaSettings> {
     async *pullOllamaModel(model: string, abortController: AbortController) {
         Log.info('Pulling model from Ollama', model);
         try {
-            const response = await fetch(`${this.connectionArgs.baseUrl}/api/pull`, {
+            const response = await fetch(`${this.connectionConfig.baseUrl}/api/pull`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

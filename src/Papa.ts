@@ -1,4 +1,3 @@
-import { ChatOllama, OllamaEmbeddings } from '@langchain/ollama';
 import { Document } from '@langchain/core/documents';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
@@ -11,16 +10,24 @@ import { LangChainTracer } from '@langchain/core/tracers/tracer_langchain';
 
 import { IndexingMode, index, unindex } from './Indexing';
 import { getTracer } from './Langsmith';
-import { GenModel, EmbedModel } from './Models';
 import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
 import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
 import { OramaStore, VectorStoreBackup } from './VectorStore';
 import Log, { LogLvl } from './Logging';
+import { createEmbedProvider, createGenProvider, createProvider, EmbedModelName, GenModelName, ProviderConfig, RegisteredProvider } from './Provider/ProviderFactory';
+import { BaseProvider } from './Provider/BaseProvider';
+import { EmbedProvider } from './Provider/EmbedProvider';
+import { GenProvider } from './Provider/GenProvider';
 
-export interface PapaData {
-    genModel: GenModel;
-    embedModel: EmbedModel;
+
+export interface PapaConfig {
+    baseProvider: { [provider: RegisteredProvider]: ProviderConfig };
+    selectedEmbedProvider: RegisteredProvider;
+    selectedGenProvider: RegisteredProvider;
+    embedModel?: EmbedModelName;
+    genModel?: GenModelName;
+    rag?: { numDocsToRetrieve?: number, similarityThreshold?: number };
     langsmithApiKey?: string;
     logLvl?: LogLvl;
 }
@@ -34,35 +41,43 @@ export interface PapaResponse {
 export class Papa {
     private vectorStore: OramaStore;
     private retriever: VectorStoreRetriever;
-    private genModel: GenModel;
+    private baseProviders: { [provider: RegisteredProvider]: BaseProvider<ProviderConfig> } = {};
+    private embedProvider: EmbedProvider<ProviderConfig>;
+    private genProvider: GenProvider<ProviderConfig>;
     private recordManager: DexieRecordManager;
     private stopRunFlag = false;
     private tracer?: LangChainTracer;
 
-    async init(data: PapaData) {
-        await this.setGenModel(data.genModel);
-        await this.setVectorStore(data.embedModel);
-        if (data.langsmithApiKey) this.setTracer(data.langsmithApiKey);
+    async init(config: PapaConfig) {
+        Log.setLogLevel(config.logLvl ?? LogLvl.INFO);
+        Log.info('Initializing...');
+        await this.updatePapaConfig(config);
+    }
+
+    async updatePapaConfig(config: Partial<PapaConfig>) {
+        if (config.baseProvider) {
+            for (const providerName in config.baseProvider) {
+                this.baseProviders[providerName] = createProvider(providerName, config.baseProvider[providerName]);
+            }
+        }
+        if (config.selectedEmbedProvider) this.embedProvider = createEmbedProvider(config.selectedEmbedProvider, this.baseProviders[config.selectedEmbedProvider]);
+        if (config.embedModel && (await this.embedProvider.getModels()).includes(config.embedModel)) this.embedProvider.setModel(config.embedModel)
+        else throw new Error('Embed Provider does not support the model');
+        if (config.selectedEmbedProvider || config.embedModel) await this.createVectorIndex();
+        if (config.selectedGenProvider) this.genProvider = createGenProvider(config.selectedGenProvider, this.baseProviders[config.selectedGenProvider]);
+        if (config.genModel && (await this.genProvider.getModels()).includes(config.genModel)) this.genProvider.setModel(config.genModel)
+        else throw new Error('Gen Provider does not support the model');
+        if (config.rag?.numDocsToRetrieve) this.retriever = this.vectorStore.asRetriever({ k: config.rag.numDocsToRetrieve });
+        if (config.rag?.similarityThreshold) this.vectorStore.setSimilarityThreshold(config.rag.similarityThreshold);
+        if (config.langsmithApiKey) this.tracer = getTracer(config.langsmithApiKey);
+        if (config.logLvl) Log.setLogLevel(config.logLvl);
+    }
+
+    private async createVectorIndex() {
+        this.vectorStore = new OramaStore(this.embedProvider.getModel().lc, { similarityThreshold: this.embedProvider.getModel().config.similarityThreshold });
+        await this.vectorStore.create(this.embedProvider.getModel().name);
+        this.retriever = this.vectorStore.asRetriever({ k: 20 });
         this.recordManager = new DexieRecordManager('RecordManager');
-        Log.setLogLevel(data.logLvl ?? LogLvl.INFO);
-    }
-
-    private async setVectorStore(embedModel: EmbedModel) {
-        this.vectorStore = new OramaStore(embedModel.lcModel, { similarityThreshold: embedModel.similarityThreshold });
-        await this.vectorStore.create(embedModel.lcModel.toString());
-        this.retriever = this.vectorStore.asRetriever({ k: embedModel.k });
-    }
-
-    setSimilarityThreshold(similarityThreshold: number) {
-        this.vectorStore.setSimilarityThreshold(similarityThreshold);
-    }
-
-    setNumOfDocsToRetrieve(k: number) {
-        this.retriever = this.vectorStore.asRetriever({ k });
-    }
-
-    async setGenModel(genModel: GenModel) {
-        this.genModel = genModel;
     }
 
     embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {
@@ -75,7 +90,7 @@ export class Papa {
     }
 
     async createTitleFromChatHistory(lang: Language, chatHistory: string) {
-        return RunnableSequence.from([PromptTemplate.fromTemplate(Prompts[lang].createTitle), this.genModel.lcModel!, new StringOutputParser()]).invoke({
+        return RunnableSequence.from([PromptTemplate.fromTemplate(Prompts[lang].createTitle), this.genProvider.getModel().lc, new StringOutputParser()]).invoke({
             chatHistory,
         });
     }
@@ -83,8 +98,8 @@ export class Papa {
     run(input: PipeInput) {
         Log.info('Running RAG... Input:', input);
         return input.isRAG
-            ? this.streamProcessor(createRagPipe(this.retriever, this.genModel, input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined))
-            : this.streamProcessor(createConversationPipe(this.genModel, input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined));
+            ? this.streamProcessor(createRagPipe(this.retriever, this.genProvider.getModel(), input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined))
+            : this.streamProcessor(createConversationPipe(this.genProvider.getModel(), input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined));
     }
 
     stopRun() {
@@ -134,12 +149,5 @@ export class Papa {
             VectorStore: await this.vectorStore.getData(),
             RecordManager: await this.recordManager.getData(),
         });
-    }
-
-    setTracer(langsmithApiKey: string) {
-        this.tracer = getTracer(langsmithApiKey);
-    }
-    static setLogLevel(verbose: LogLvl) {
-        Log.setLogLevel(verbose);
     }
 }

@@ -8,7 +8,7 @@ import llamaTokenizer from 'llama-tokenizer-js';
 
 import { Language, Prompts } from './Prompts';
 import Log from './Logging';
-import { GenModel } from './Models';
+import { GenModel } from './Provider/GenProvider';
 
 export type PipeInput = {
     isRAG: boolean;
@@ -40,7 +40,7 @@ export function createRagPipe(retriever: VectorStoreRetriever, model: GenModel, 
             ]).withConfig({ runName: 'Retrieving Notes' }),
         },
         getPreprocessPromptPipe(model, input),
-        model.lcModel!,
+        model.lc,
         new StringOutputParser(),
     ]).withConfig({ runName: 'RAG Chat Pipe' });
     return ragChain;
@@ -53,7 +53,7 @@ export function createConversationPipe(model: GenModel, input: PipeInput) {
             chatHistory: (input: PipeInput) => input.chatHistory,
         },
         PromptTemplate.fromTemplate(Prompts[input.lang].conversation),
-        model.lcModel!,
+        model.lc,
         new StringOutputParser(),
     ]).withConfig({ runName: 'Normal Chat Pipe' });
     return conversationChain;
@@ -65,7 +65,7 @@ function getDocsPostProcessor(model: GenModel, pipeInput: PipeInput) {
         const reducePrompt = (
             await PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce).formatPromptValue({ query: pipeInput.userQuery, content: '' })
         ).toString();
-        const tokenMax = model.contextWindow! - (await getTokenCount(model, reducePrompt));
+        const tokenMax = model.config.contextWindow - (await getTokenCount(model, reducePrompt));
 
         Log.debug('Retrieved Docs', documents);
         // group documents by filepath
@@ -130,7 +130,7 @@ function getDocsReducePipe(model: GenModel, pipeInput: PipeInput) {
         const reducePrompt = (
             await PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce).formatPromptValue({ query: pipeInput.userQuery, content: '' })
         ).toString();
-        const tokenMax = model.contextWindow! - (await getTokenCount(model, reducePrompt));
+        const tokenMax = model.config.contextWindow - (await getTokenCount(model, reducePrompt));
 
         do {
             if (editableConfig) editableConfig.runName = `Reduce ${reduceCount + 1}`;
@@ -142,7 +142,7 @@ function getDocsReducePipe(model: GenModel, pipeInput: PipeInput) {
                 reduceCount === 0
                     ? PromptTemplate.fromTemplate(Prompts[pipeInput.lang].initialReduce)
                     : PromptTemplate.fromTemplate(Prompts[pipeInput.lang].reduce),
-                model.lcModel!,
+                model.lc,
                 new StringOutputParser(),
             ]);
             contents = await Promise.all(splitedContents.map((contents) => reduceChain.invoke(contents.join('\n\n'))));
@@ -175,7 +175,7 @@ async function splitContents(contents: string[], getNumTokens: (content: string)
 function getPreprocessPromptPipe(model: GenModel, input: PipeInput) {
     return async ({ query, chatHistory, context }: { query: string; chatHistory: string; context: string }) => {
         const ragPrompt = (await PromptTemplate.fromTemplate(Prompts[input.lang].rag).formatPromptValue({ query, context, chatHistory })).toString();
-        if (model.contextWindow! > (await getTokenCount(model, ragPrompt))) return ragPrompt;
+        if (model.config.contextWindow > (await getTokenCount(model, ragPrompt))) return ragPrompt;
         // TODO: if the chathistory or the input is too long, we should summarize
         return "Please echo 'The chathistory is too long, please create a new chat or summarize it.'";
     };
