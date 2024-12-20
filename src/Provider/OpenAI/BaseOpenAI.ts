@@ -8,9 +8,9 @@ export type OpenAIConfig = {
 export class OpenAIProvider extends BaseProvider<OpenAIConfig> {
     readonly isLocal = false;
 
-    constructor(openAIKwargs: OpenAIConfig) {
+    constructor(config: OpenAIConfig) {
         super();
-        Object.assign(this, openAIKwargs);
+        this.connectionConfig = config;
     }
 
     async isSetuped(): Promise<boolean> {

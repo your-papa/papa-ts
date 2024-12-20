@@ -6,11 +6,10 @@ export type OllamaConfig = {
 };
 export class OllamaProvider extends BaseProvider<OllamaConfig> {
     readonly isLocal = true;
-    // base_url = https://localhost:11434
 
-    constructor(ollamaKwargs: OllamaConfig) {
+    constructor(config: OllamaConfig = { baseUrl: 'http://localhost:11434' }) {
         super();
-        Object.assign(this, ollamaKwargs);
+        this.connectionConfig = config;
     }
 
     async isSetuped(): Promise<boolean> {
