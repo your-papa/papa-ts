@@ -55,7 +55,7 @@ export class OramaStore extends VectorStore {
     async restore(vectorStoreBackup: VectorStoreBackup) {
         Log.debug('Restoring vectorstore from backup');
         // vectorStoreBackup is an object and not an array for some reason
-        const docs = Object.keys(vectorStoreBackup.docs).map((key) => vectorStoreBackup.docs[key]);
+        const docs = Object.keys(vectorStoreBackup.docs).map((key) => vectorStoreBackup.docs[Number(key)]);
         await this.create(vectorStoreBackup.indexName, vectorStoreBackup.vectorSize);
         insertMultiple(this.db, docs);
         Log.info('Restored vectorstore from backup');

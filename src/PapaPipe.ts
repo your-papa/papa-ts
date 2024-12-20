@@ -1,7 +1,7 @@
 import { BaseCallbackConfig } from '@langchain/core/callbacks/manager';
 import { Document } from '@langchain/core/documents';
 import { StringOutputParser } from '@langchain/core/output_parsers';
-import { RunnablePassthrough, RunnableSequence } from '@langchain/core/runnables';
+import { RunnableConfig, RunnablePassthrough, RunnableSequence } from '@langchain/core/runnables';
 import { VectorStoreRetriever } from '@langchain/core/vectorstores';
 import { PromptTemplate } from '@langchain/core/prompts';
 import llamaTokenizer from 'llama-tokenizer-js';
@@ -118,12 +118,9 @@ function getDocsPostProcessor(model: GenModel, pipeInput: PipeInput) {
 function getDocsReducePipe(model: GenModel, pipeInput: PipeInput) {
     return async (
         postProcessedResult: { notes: string[]; needsReduce: boolean },
-        options?: {
-            config?: BaseCallbackConfig;
-        }
+        config?: RunnableConfig<Record<string, any>>
     ) => {
         if (!postProcessedResult.needsReduce) return postProcessedResult.notes.join('\n\n');
-        const editableConfig = options?.config;
         let contents = postProcessedResult.notes;
         let reduceCount = 0;
 
@@ -133,7 +130,7 @@ function getDocsReducePipe(model: GenModel, pipeInput: PipeInput) {
         const tokenMax = model.config.contextWindow - (await getTokenCount(model, reducePrompt));
 
         do {
-            if (editableConfig) editableConfig.runName = `Reduce ${reduceCount + 1}`;
+            if (config) config.runName = `Reduce ${reduceCount + 1}`;
 
             // split notes by length to fit into context length
             const splitedContents = await splitContents(contents, (content: string) => getTokenCount(model, content), tokenMax);
