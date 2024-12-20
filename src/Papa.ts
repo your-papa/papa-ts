@@ -139,12 +139,12 @@ export class Papa {
         }
     }
 
-    async load(vectorStoreBackup: ArrayBuffer) {
+    async load(vectorStoreBackup: Uint8Array) {
         const { VectorStore, RecordManager } = decode(vectorStoreBackup) as { VectorStore: VectorStoreBackup; RecordManager: VectorIndexRecord[] };
         await Promise.all([this.vectorStore.restore(VectorStore), this.recordManager.restore(RecordManager)]);
     }
 
-    async getData(): Promise<ArrayBuffer> {
+    async getData(): Promise<Uint8Array> {
         return encode({
             VectorStore: await this.vectorStore.getData(),
             RecordManager: await this.recordManager.getData(),
