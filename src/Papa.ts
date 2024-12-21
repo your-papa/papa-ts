@@ -59,7 +59,7 @@ export class Papa {
             for (const providerName in config.baseProvider) {
                 const providerConfig = config.baseProvider[providerName as RegisteredProvider];
                 if (!providerConfig) throw new Error(`Configuration for provider ${providerName} is missing`);
-                this.baseProviders[providerName as RegisteredProvider] = createProvider(providerName as RegisteredProvider, providerConfig);
+                this.baseProviders[providerName as RegisteredProvider] = await createProvider(providerName as RegisteredProvider, providerConfig);
             }
         }
         if (config.selEmbedProvider) {
@@ -86,6 +86,10 @@ export class Papa {
         await this.vectorStore.create(this.embedProvider.getModel().name);
         this.retriever = this.vectorStore.asRetriever({ k: 20 });
         this.recordManager = new DexieRecordManager('RecordManager');
+    }
+
+    async isReady() {
+        return await this.embedProvider.isSetuped() && await this.genProvider.isSetuped();
     }
 
     embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {

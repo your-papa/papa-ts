@@ -12,22 +12,23 @@ export class OllamaProvider extends BaseProvider<OllamaConfig> {
         this.connectionConfig = config;
     }
 
-    async isSetuped(): Promise<boolean> {
+    async setup(): Promise<boolean> {
         try {
             new URL(this.connectionConfig.baseUrl);
             const response = await fetch(this.connectionConfig.baseUrl + '/api/tags');
             if (response.status === 200) {
-                return true;
+                this.isSetupComplete = true;
             } else {
                 Log.debug(`Unexpected status code: ${response.status}`);
                 // errorState.set('ollama-not-running');
-                return false;
+                this.isSetupComplete = false;
             }
         } catch (error) {
             Log.debug('Ollama is not running or origins not correctly set', error);
             // errorState.set('ollama-not-running');
-            return false;
+            this.isSetupComplete = false;
         }
+        return this.isSetupComplete;
     }
 
     setConnectionConfig(connectionArgs: OllamaConfig): { connectionArgs: OllamaConfig } {

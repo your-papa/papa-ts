@@ -13,7 +13,7 @@ export class OpenAIProvider extends BaseProvider<OpenAIConfig> {
         this.connectionConfig = config;
     }
 
-    async isSetuped(): Promise<boolean> {
+    async setup(): Promise<boolean> {
         try {
             const response = await fetch('https://api.openai.com/v1/models', {
                 method: 'GET',
@@ -21,11 +21,12 @@ export class OpenAIProvider extends BaseProvider<OpenAIConfig> {
                     Authorization: `Bearer ${this.connectionConfig.apiKey}`,
                 },
             });
-            return response.status === 200;
+            this.isSetupComplete = response.status === 200;
         } catch (error) {
             Log.debug('notice.openai_key');
-            return false;
+            this.isSetupComplete = false;
         }
+        return this.isSetupComplete;
     }
 
     async getModels(): Promise<string[]> {

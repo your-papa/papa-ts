@@ -1,8 +1,12 @@
 export abstract class BaseProvider<TConfig> {
     readonly isLocal: boolean;
     protected connectionConfig: TConfig;
+    protected isSetupComplete: boolean = false;
 
-    abstract isSetuped(): Promise<boolean>;
+    abstract setup(): Promise<boolean>;
+    isSetuped(): boolean {
+        return this.isSetupComplete;
+    }
 
     setConnectionConfig(partialConfig: Partial<TConfig>): { connectionArgs: TConfig } {
         this.connectionConfig = { ...this.connectionConfig, ...partialConfig };

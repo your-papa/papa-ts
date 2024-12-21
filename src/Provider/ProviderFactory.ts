@@ -14,11 +14,15 @@ export type GenModelName = OpenAIGenModel | OllamaGenModel;
 export type EmbedModelName = OpenAIEmbedModel | OllamaEmbedModel;
 
 
-export function createProvider(providerName: RegisteredProvider, config: ProviderConfig): BaseProvider<ProviderConfig> {
+export async function createProvider(providerName: RegisteredProvider, config: ProviderConfig): Promise<BaseProvider<ProviderConfig>> {
     if (providerName === 'OpenAI') {
-        return new OpenAIProvider(config as OpenAIConfig);
+        const openaiProvider = new OpenAIProvider(config as OpenAIConfig);
+        await openaiProvider.setup();
+        return openaiProvider;
     } else if (providerName === 'Ollama') {
-        return new OllamaProvider(config as OllamaConfig);
+        const ollamaProvider = new OllamaProvider(config as OllamaConfig);
+        await ollamaProvider.setup();
+        return ollamaProvider;
     } else {
         throw new Error('Base Provider not found');
     }
