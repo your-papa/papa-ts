@@ -32,7 +32,7 @@
     "homepage": "https://github.com/your-papa/papa-ts#readme",
     "devDependencies": {
         "@types/node": "^22.8.7",
-        "obsidian": "^1.4.11",
+        "obsidian": "^1.7.2",
         "ts-node": "^10.9.1",
         "tsup": "^8.2.0",
         "typescript": "^5.2.2"

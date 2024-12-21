@@ -1,6 +1,6 @@
 import { Document } from '@langchain/core/documents';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
-import { App, TFile } from 'obsidian';
+import { App, CachedMetadata, TFile } from 'obsidian';
 import crypto from 'crypto';
 
 import Log from './Logging';
@@ -10,26 +10,30 @@ export function hashString(inputString: string): string {
 }
 
 // TODO create custom Document type
+// TODO use markdown parser that I investigated in my bachelor thesis
 
-export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): Promise<Document[]> {
+export type ObsidianFile = {
+    path: string;
+    metadata: CachedMetadata;
+    content: string;
+};
+
+export async function obsidianDocumentLoader(files: ObsidianFile[]): Promise<Document[]> {
     let docs: Document[] = [];
     for (const file of files) {
-        const fileMetadata = obsidianApp.metadataCache.getFileCache(file);
-        if (!fileMetadata) continue;
         // Keep in mind that chunksize is not token size but character size
         const maxTokenSize = 512;
         const splitter = new RecursiveCharacterTextSplitter({ chunkSize: maxTokenSize * 4, chunkOverlap: 0, separators: ['\n', '. ', '? ', '! ', ' ', ''] }); // One token is 4 characters on average
 
         // TODO check for edge cases for example if # is used and directly afterwards ###
-        const noteContent = await obsidianApp.vault.cachedRead(file);
         let headerCount = 0;
         let docCount = 1;
         let headingTree: string[] = [];
         let currentHeadingLevel = 0;
         let foundFrontmatter = false;
 
-        for (const section of fileMetadata.sections || []) {
-            const sectionContent = noteContent.slice(section.position.start.offset, section.position.end.offset);
+        for (const section of file.metadata.sections || []) {
+            const sectionContent = file.content.slice(section.position.start.offset, section.position.end.offset);
             const addDoc = async (embedContent: string, isMetadata: boolean = false) => {
                 const id = file.path + (isMetadata ? ' metadata' : headingTree.join('') + ' ID' + docCount);
                 docs.push({
@@ -52,8 +56,8 @@ export async function obsidianDocumentLoader(obsidianApp: App, files: TFile[]): 
                 foundFrontmatter = true;
                 continue;
             } else if (section.type === 'heading') {
-                const currentHeading = fileMetadata.headings![headerCount];
-                const headingContent = noteContent.slice(currentHeading.position.start.offset, currentHeading.position.end.offset);
+                const currentHeading = file.metadata.headings![headerCount];
+                const headingContent = file.content.slice(currentHeading.position.start.offset, currentHeading.position.end.offset);
                 if (currentHeading.level > currentHeadingLevel) {
                     headingTree.push(headingContent);
                     currentHeadingLevel = currentHeading.level;

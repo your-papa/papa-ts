@@ -1,5 +1,5 @@
 import { Papa, PapaConfig, PapaResponseStatus } from './Papa';
-import { obsidianDocumentLoader } from './ObsidianDocumentLoader';
+import { obsidianDocumentLoader, ObsidianFile } from './ObsidianDocumentLoader';
 import { Language, Languages, Prompts } from './Prompts';
 import { LogLvl } from './Logging';
 import { BaseProvider } from './Provider/BaseProvider';
@@ -18,6 +18,7 @@ export {
     PapaConfig,
     PapaResponseStatus,
     obsidianDocumentLoader,
+    ObsidianFile,
     Prompts,
     Language,
     Languages,
