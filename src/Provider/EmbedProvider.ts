@@ -27,7 +27,9 @@ export abstract class EmbedProvider<TConfig> {
         return this.provider.isSetuped();
     }
 
-    setModel(model: EmbedModelName) {
+    async setModel(model: EmbedModelName) {
+        if (!(await this.getModels()).includes(model))
+            throw new Error('Embed Provider does not support the model ' + model);
         this.selectedModel = model;
         this.createLCModel(model);
     }

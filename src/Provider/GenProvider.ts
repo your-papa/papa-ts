@@ -29,7 +29,9 @@ export abstract class GenProvider<TConfig> {
         return await this.provider.isSetuped();
     }
 
-    setModel(model: GenModelName) {
+    async setModel(model: GenModelName) {
+        if (!(await this.getModels()).includes(model))
+            throw new Error('Gen Provider does not support the model ' + model);
         this.selectedModel = model;
         this.createLCModel(model);
     }

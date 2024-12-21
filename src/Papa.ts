@@ -22,7 +22,7 @@ import { GenProvider } from './Provider/GenProvider';
 
 
 export interface PapaConfig {
-    baseProvider: { [provider: RegisteredProvider]: ProviderConfig };
+    baseProvider: { [provider in RegisteredProvider]?: ProviderConfig };
     selectedEmbedProvider: RegisteredProvider;
     selectedGenProvider: RegisteredProvider;
     embedModel?: EmbedModelName;
@@ -41,7 +41,7 @@ export interface PapaResponse {
 export class Papa {
     private vectorStore: OramaStore;
     private retriever: VectorStoreRetriever;
-    private baseProviders: { [provider: RegisteredProvider]: BaseProvider<ProviderConfig> } = {};
+    private baseProviders: { [provider in RegisteredProvider]?: BaseProvider<ProviderConfig> } = {};
     private embedProvider: EmbedProvider<ProviderConfig>;
     private genProvider: GenProvider<ProviderConfig>;
     private recordManager: DexieRecordManager;
@@ -57,16 +57,24 @@ export class Papa {
     async updatePapaConfig(config: Partial<PapaConfig>) {
         if (config.baseProvider) {
             for (const providerName in config.baseProvider) {
-                this.baseProviders[providerName] = createProvider(providerName, config.baseProvider[providerName]);
+                const providerConfig = config.baseProvider[providerName as RegisteredProvider];
+                if (!providerConfig) throw new Error(`Configuration for provider ${providerName} is missing`);
+                this.baseProviders[providerName as RegisteredProvider] = createProvider(providerName as RegisteredProvider, providerConfig);
             }
         }
-        if (config.selectedEmbedProvider) this.embedProvider = createEmbedProvider(config.selectedEmbedProvider, this.baseProviders[config.selectedEmbedProvider]);
-        if (config.embedModel && (await this.embedProvider.getModels()).includes(config.embedModel)) this.embedProvider.setModel(config.embedModel)
-        else throw new Error('Embed Provider does not support the model');
+        if (config.selectedEmbedProvider) {
+            const embedProvider = this.baseProviders[config.selectedEmbedProvider];
+            if (!embedProvider) throw new Error(`Selected provider ${config.selectedEmbedProvider} is not configured`);
+            this.embedProvider = createEmbedProvider(config.selectedEmbedProvider, embedProvider);
+        }
+        if (config.selectedGenProvider) {
+            const genProvider = this.baseProviders[config.selectedGenProvider];
+            if (!genProvider) throw new Error(`Selected provider ${config.selectedGenProvider} is not configured`);
+            this.genProvider = createGenProvider(config.selectedGenProvider, genProvider);
+        }
+        if (config.embedModel) this.embedProvider.setModel(config.embedModel)
         if (config.selectedEmbedProvider || config.embedModel) await this.createVectorIndex();
-        if (config.selectedGenProvider) this.genProvider = createGenProvider(config.selectedGenProvider, this.baseProviders[config.selectedGenProvider]);
-        if (config.genModel && (await this.genProvider.getModels()).includes(config.genModel)) this.genProvider.setModel(config.genModel)
-        else throw new Error('Gen Provider does not support the model');
+        if (config.genModel) this.genProvider.setModel(config.genModel);
         if (config.rag?.numDocsToRetrieve) this.retriever = this.vectorStore.asRetriever({ k: config.rag.numDocsToRetrieve });
         if (config.rag?.similarityThreshold) this.vectorStore.setSimilarityThreshold(config.rag.similarityThreshold);
         if (config.langsmithApiKey) this.tracer = getTracer(config.langsmithApiKey);

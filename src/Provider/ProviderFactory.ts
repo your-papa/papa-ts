@@ -7,8 +7,8 @@ import { OpenAIEmbed, OpenAIEmbedModel } from './OpenAI/EmbedOpenAI';
 import { OllamaEmbed, OllamaEmbedModel } from './Ollama/EmbedOllama';
 
 export type ProviderConfig = OpenAIConfig | OllamaConfig;
-export const RegisteredProviders = ['OpenAI', 'Ollama'];
-export type RegisteredProvider = typeof RegisteredProviders[number];
+export const RegisteredProviders = ['OpenAI', 'Ollama'] as const;
+export type RegisteredProvider = (typeof RegisteredProviders)[number];
 
 export type GenModelName = OpenAIGenModel | OllamaGenModel;
 export type EmbedModelName = OpenAIEmbedModel | OllamaEmbedModel;
