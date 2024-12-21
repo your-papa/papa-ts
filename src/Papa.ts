@@ -23,10 +23,10 @@ import { GenProvider } from './Provider/GenProvider';
 
 export interface PapaConfig {
     baseProvider: { [provider in RegisteredProvider]?: ProviderConfig };
-    selectedEmbedProvider: RegisteredProvider;
-    selectedGenProvider: RegisteredProvider;
-    embedModel?: EmbedModelName;
-    genModel?: GenModelName;
+    selEmbedProvider: RegisteredProvider;
+    selGenProvider: RegisteredProvider;
+    selEmbedModel?: EmbedModelName;
+    selGenModel?: GenModelName;
     rag?: { numDocsToRetrieve?: number, similarityThreshold?: number };
     langsmithApiKey?: string;
     logLvl?: LogLvl;
@@ -62,19 +62,19 @@ export class Papa {
                 this.baseProviders[providerName as RegisteredProvider] = createProvider(providerName as RegisteredProvider, providerConfig);
             }
         }
-        if (config.selectedEmbedProvider) {
-            const embedProvider = this.baseProviders[config.selectedEmbedProvider];
-            if (!embedProvider) throw new Error(`Selected provider ${config.selectedEmbedProvider} is not configured`);
-            this.embedProvider = createEmbedProvider(config.selectedEmbedProvider, embedProvider);
+        if (config.selEmbedProvider) {
+            const embedProvider = this.baseProviders[config.selEmbedProvider];
+            if (!embedProvider) throw new Error(`Selected provider ${config.selEmbedProvider} is not configured`);
+            this.embedProvider = createEmbedProvider(config.selEmbedProvider, embedProvider);
         }
-        if (config.selectedGenProvider) {
-            const genProvider = this.baseProviders[config.selectedGenProvider];
-            if (!genProvider) throw new Error(`Selected provider ${config.selectedGenProvider} is not configured`);
-            this.genProvider = createGenProvider(config.selectedGenProvider, genProvider);
+        if (config.selGenProvider) {
+            const genProvider = this.baseProviders[config.selGenProvider];
+            if (!genProvider) throw new Error(`Selected provider ${config.selGenProvider} is not configured`);
+            this.genProvider = createGenProvider(config.selGenProvider, genProvider);
         }
-        if (config.embedModel) this.embedProvider.setModel(config.embedModel)
-        if (config.selectedEmbedProvider || config.embedModel) await this.createVectorIndex();
-        if (config.genModel) this.genProvider.setModel(config.genModel);
+        if (config.selEmbedModel) this.embedProvider.setModel(config.selEmbedModel)
+        if (config.selEmbedProvider || config.selEmbedModel) await this.createVectorIndex();
+        if (config.selGenModel) this.genProvider.setModel(config.selGenModel);
         if (config.rag?.numDocsToRetrieve) this.retriever = this.vectorStore.asRetriever({ k: config.rag.numDocsToRetrieve });
         if (config.rag?.similarityThreshold) this.vectorStore.setSimilarityThreshold(config.rag.similarityThreshold);
         if (config.langsmithApiKey) this.tracer = getTracer(config.langsmithApiKey);
