@@ -10,6 +10,8 @@ import { OpenAIEmbedModels } from './Provider/OpenAI/EmbedOpenAI';
 import { OpenAIGenModels } from './Provider/OpenAI/GenOpenAI';
 import { OllamaConfig } from './Provider/Ollama/BaseOllama';
 import { OpenAIConfig } from './Provider/OpenAI/BaseOpenAI';
+import { EmbedModelConfig } from './Provider/EmbedProvider';
+import { GenModelConfig } from './Provider/GenProvider';
 
 export {
     Papa,
@@ -32,4 +34,6 @@ export {
     OpenAIGenModels,
     OllamaEmbedModels,
     OllamaGenModels,
+    EmbedModelConfig,
+    GenModelConfig,
 };
