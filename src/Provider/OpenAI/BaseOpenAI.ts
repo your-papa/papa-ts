@@ -8,12 +8,8 @@ export type OpenAIConfig = {
 export class OpenAIProvider extends BaseProvider<OpenAIConfig> {
     readonly isLocal = false;
 
-    constructor(config: OpenAIConfig) {
-        super();
+    async setup(config: OpenAIConfig): Promise<boolean> {
         this.connectionConfig = config;
-    }
-
-    async setup(): Promise<boolean> {
         try {
             const response = await fetch('https://api.openai.com/v1/models', {
                 method: 'GET',

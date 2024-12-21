@@ -3,7 +3,7 @@ export abstract class BaseProvider<TConfig> {
     protected connectionConfig: TConfig;
     protected isSetupComplete: boolean = false;
 
-    abstract setup(): Promise<boolean>;
+    abstract setup(config: TConfig): Promise<boolean>;
     isSetuped(): boolean {
         return this.isSetupComplete;
     }

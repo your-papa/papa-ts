@@ -37,6 +37,10 @@ export abstract class EmbedProvider<TConfig> {
         return { name: this.selectedModel, lc: this.lcModel, config: this.models[this.selectedModel] };
     }
 
+    getProvider(): BaseProvider<TConfig> {
+        return this.provider;
+    }
+
     protected abstract createLCModel(model: EmbedModelName): void;
 }
 

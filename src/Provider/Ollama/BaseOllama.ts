@@ -7,12 +7,8 @@ export type OllamaConfig = {
 export class OllamaProvider extends BaseProvider<OllamaConfig> {
     readonly isLocal = true;
 
-    constructor(config: OllamaConfig = { baseUrl: 'http://localhost:11434' }) {
-        super();
+    async setup(config: OllamaConfig): Promise<boolean> {
         this.connectionConfig = config;
-    }
-
-    async setup(): Promise<boolean> {
         try {
             new URL(this.connectionConfig.baseUrl);
             const response = await fetch(this.connectionConfig.baseUrl + '/api/tags');

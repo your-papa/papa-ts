@@ -15,14 +15,13 @@ import { Language, Prompts } from './Prompts';
 import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
 import { OramaStore, VectorStoreBackup } from './VectorStore';
 import Log, { LogLvl } from './Logging';
-import { createEmbedProvider, createGenProvider, createProvider, EmbedModelName, GenModelName, ProviderConfig, RegisteredProvider } from './Provider/ProviderFactory';
-import { BaseProvider } from './Provider/BaseProvider';
-import { EmbedProvider } from './Provider/EmbedProvider';
+import { EmbedModelName, GenModelName, ProviderConfig, ProviderManager, RegisteredProvider } from './Provider/ProviderFactory';
 import { GenProvider } from './Provider/GenProvider';
+import { EmbedProvider } from './Provider/EmbedProvider';
 
 
 export interface PapaConfig {
-    baseProvider: { [provider in RegisteredProvider]?: ProviderConfig };
+    baseProviders: Partial<{ [provider in RegisteredProvider]: ProviderConfig }>;
     selEmbedProvider: RegisteredProvider;
     selGenProvider: RegisteredProvider;
     selEmbedModel?: EmbedModelName;
@@ -41,7 +40,7 @@ export interface PapaResponse {
 export class Papa {
     private vectorStore: OramaStore;
     private retriever: VectorStoreRetriever;
-    private baseProviders: { [provider in RegisteredProvider]?: BaseProvider<ProviderConfig> } = {};
+    private providerManager: ProviderManager = new ProviderManager();
     private embedProvider: EmbedProvider<ProviderConfig>;
     private genProvider: GenProvider<ProviderConfig>;
     private recordManager: DexieRecordManager;
@@ -55,23 +54,9 @@ export class Papa {
     }
 
     async updatePapaConfig(config: Partial<PapaConfig>) {
-        if (config.baseProvider) {
-            for (const providerName in config.baseProvider) {
-                const providerConfig = config.baseProvider[providerName as RegisteredProvider];
-                if (!providerConfig) throw new Error(`Configuration for provider ${providerName} is missing`);
-                this.baseProviders[providerName as RegisteredProvider] = await createProvider(providerName as RegisteredProvider, providerConfig);
-            }
-        }
-        if (config.selEmbedProvider) {
-            const embedProvider = this.baseProviders[config.selEmbedProvider];
-            if (!embedProvider) throw new Error(`Selected provider ${config.selEmbedProvider} is not configured`);
-            this.embedProvider = createEmbedProvider(config.selEmbedProvider, embedProvider);
-        }
-        if (config.selGenProvider) {
-            const genProvider = this.baseProviders[config.selGenProvider];
-            if (!genProvider) throw new Error(`Selected provider ${config.selGenProvider} is not configured`);
-            this.genProvider = createGenProvider(config.selGenProvider, genProvider);
-        }
+        if (config.baseProviders) await this.providerManager.setupProviders(config.baseProviders);
+        if (config.selEmbedProvider) this.embedProvider = this.providerManager.getEmbedProvider(config.selEmbedProvider);
+        if (config.selGenProvider) this.genProvider = this.providerManager.getGenProvider(config.selGenProvider);
         if (config.selEmbedModel) this.embedProvider.setModel(config.selEmbedModel)
         if (config.selEmbedProvider || config.selEmbedModel) await this.createVectorIndex();
         if (config.selGenModel) this.genProvider.setModel(config.selGenModel);
