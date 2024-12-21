@@ -16,7 +16,7 @@ export type GenModelName = OpenAIGenModel | OllamaGenModel;
 export type EmbedModelName = OpenAIEmbedModel | OllamaEmbedModel;
 
 
-export class ProviderManager {
+export class ProviderRegistry {
     private baseProviders: { [provider in RegisteredProvider]: BaseProvider<ProviderConfig> };
     private genProviders: { [provider in RegisteredProvider]: GenProvider<ProviderConfig> };
     private embedProviders: { [provider in RegisteredProvider]: EmbedProvider<ProviderConfig> };

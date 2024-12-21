@@ -1,6 +1,6 @@
 import { Embeddings } from "@langchain/core/embeddings";
 import { BaseProvider } from "./BaseProvider";
-import { EmbedModelName } from "./ProviderFactory";
+import { EmbedModelName } from "./ProviderRegistry";
 
 export type EmbedModelConfig = {
     similarityThreshold: number;

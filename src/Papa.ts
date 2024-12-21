@@ -15,7 +15,7 @@ import { Language, Prompts } from './Prompts';
 import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
 import { OramaStore, VectorStoreBackup } from './VectorStore';
 import Log, { LogLvl } from './Logging';
-import { EmbedModelName, GenModelName, ProviderConfig, ProviderManager, RegisteredProvider } from './Provider/ProviderFactory';
+import { EmbedModelName, GenModelName, ProviderConfig, ProviderRegistry, RegisteredProvider } from './Provider/ProviderRegistry';
 import { GenProvider } from './Provider/GenProvider';
 import { EmbedProvider } from './Provider/EmbedProvider';
 
@@ -40,7 +40,7 @@ export interface PapaResponse {
 export class Papa {
     private vectorStore: OramaStore;
     private retriever: VectorStoreRetriever;
-    private providerManager: ProviderManager = new ProviderManager();
+    private providerRegistry: ProviderRegistry = new ProviderRegistry();
     private embedProvider: EmbedProvider<ProviderConfig>;
     private genProvider: GenProvider<ProviderConfig>;
     private recordManager: DexieRecordManager;
@@ -54,9 +54,9 @@ export class Papa {
     }
 
     async updatePapaConfig(config: Partial<PapaConfig>) {
-        if (config.baseProviders) await this.providerManager.setupProviders(config.baseProviders);
-        if (config.selEmbedProvider) this.embedProvider = this.providerManager.getEmbedProvider(config.selEmbedProvider);
-        if (config.selGenProvider) this.genProvider = this.providerManager.getGenProvider(config.selGenProvider);
+        if (config.baseProviders) await this.providerRegistry.setupProviders(config.baseProviders);
+        if (config.selEmbedProvider) this.embedProvider = this.providerRegistry.getEmbedProvider(config.selEmbedProvider);
+        if (config.selGenProvider) this.genProvider = this.providerRegistry.getGenProvider(config.selGenProvider);
         if (config.selEmbedModel) this.embedProvider.setModel(config.selEmbedModel)
         if (config.selEmbedProvider || config.selEmbedModel) await this.createVectorIndex();
         if (config.selGenModel) this.genProvider.setModel(config.selGenModel);
