@@ -75,8 +75,12 @@ export class Papa {
         this.recordManager = new DexieRecordManager('RecordManager');
     }
 
-    async isReady() {
-        return await this.embedProvider.isSetuped() && await this.genProvider.isSetuped();
+    async isGenProviderSetuped() {
+        return await this.genProvider.isSetuped();
+    }
+
+    async isEmbedProviderSetuped() {
+        return await this.embedProvider.isSetuped();
     }
 
     embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {
@@ -96,9 +100,15 @@ export class Papa {
 
     run(input: PipeInput) {
         Log.info('Running RAG... Input:', input);
-        return input.isRAG
-            ? this.streamProcessor(createRagPipe(this.retriever, this.genProvider.getModel(), input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined))
-            : this.streamProcessor(createConversationPipe(this.genProvider.getModel(), input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined));
+        if (input.isRAG) {
+            if (!this.isEmbedProviderSetuped() || !this.isGenProviderSetuped())
+                throw new Error('RAG requires both Embedding and Generation providers to be setup');
+            return this.streamProcessor(createRagPipe(this.retriever, this.genProvider.getModel(), input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined))
+        } else {
+            if (!this.isGenProviderSetuped())
+                throw new Error('Conversation requires a Generation provider to be setup');
+            return this.streamProcessor(createConversationPipe(this.genProvider.getModel(), input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined))
+        }
     }
 
     stopRun() {
