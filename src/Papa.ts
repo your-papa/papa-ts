@@ -26,9 +26,9 @@ export interface PapaConfig {
     selGenProvider: RegisteredProvider;
     selEmbedModel?: EmbedModelName;
     selGenModel?: GenModelName;
-    embedModelConfig?: EmbedModelConfig;
-    genModelConfig?: GenModelConfig;
-    rag?: { numDocsToRetrieve?: number, similarityThreshold?: number };
+    embedModelConfig?: Partial<EmbedModelConfig>;
+    genModelConfig?: Partial<GenModelConfig>;
+    numDocsToRetrieve?: number;
     langsmithApiKey?: string;
     logLvl?: LogLvl;
 }
@@ -62,8 +62,8 @@ export class Papa {
         if (config.selEmbedModel) this.embedProvider.setModel(config.selEmbedModel, config.embedModelConfig);
         if (config.selEmbedProvider || config.selEmbedModel) await this.createVectorIndex();
         if (config.selGenModel) this.genProvider.setModel(config.selGenModel, config.genModelConfig);
-        if (config.rag?.numDocsToRetrieve) this.retriever = this.vectorStore.asRetriever({ k: config.rag.numDocsToRetrieve });
-        if (config.rag?.similarityThreshold) this.vectorStore.setSimilarityThreshold(config.rag.similarityThreshold);
+        if (config.numDocsToRetrieve) this.retriever = this.vectorStore.asRetriever({ k: config.numDocsToRetrieve });
+        if (config.embedModelConfig?.similarityThreshold) this.vectorStore.setSimilarityThreshold(config.embedModelConfig.similarityThreshold);
         if (config.langsmithApiKey) this.tracer = getTracer(config.langsmithApiKey);
         if (config.logLvl) Log.setLogLevel(config.logLvl);
     }
