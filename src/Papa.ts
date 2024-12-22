@@ -16,8 +16,8 @@ import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
 import { OramaStore, VectorStoreBackup } from './VectorStore';
 import Log, { LogLvl } from './Logging';
 import { EmbedModelName, GenModelName, ProviderConfig, ProviderRegistry, RegisteredProvider } from './Provider/ProviderRegistry';
-import { GenProvider } from './Provider/GenProvider';
-import { EmbedProvider } from './Provider/EmbedProvider';
+import { GenModelConfig, GenProvider } from './Provider/GenProvider';
+import { EmbedModelConfig, EmbedProvider } from './Provider/EmbedProvider';
 
 
 export interface PapaConfig {
@@ -26,6 +26,8 @@ export interface PapaConfig {
     selGenProvider: RegisteredProvider;
     selEmbedModel?: EmbedModelName;
     selGenModel?: GenModelName;
+    embedModelConfig?: EmbedModelConfig;
+    genModelConfig?: GenModelConfig;
     rag?: { numDocsToRetrieve?: number, similarityThreshold?: number };
     langsmithApiKey?: string;
     logLvl?: LogLvl;
@@ -57,9 +59,9 @@ export class Papa {
         if (config.baseProviders) await this.providerRegistry.setupProviders(config.baseProviders);
         if (config.selEmbedProvider) this.embedProvider = this.providerRegistry.getEmbedProvider(config.selEmbedProvider);
         if (config.selGenProvider) this.genProvider = this.providerRegistry.getGenProvider(config.selGenProvider);
-        if (config.selEmbedModel) this.embedProvider.setModel(config.selEmbedModel)
+        if (config.selEmbedModel) this.embedProvider.setModel(config.selEmbedModel, config.embedModelConfig);
         if (config.selEmbedProvider || config.selEmbedModel) await this.createVectorIndex();
-        if (config.selGenModel) this.genProvider.setModel(config.selGenModel);
+        if (config.selGenModel) this.genProvider.setModel(config.selGenModel, config.genModelConfig);
         if (config.rag?.numDocsToRetrieve) this.retriever = this.vectorStore.asRetriever({ k: config.rag.numDocsToRetrieve });
         if (config.rag?.similarityThreshold) this.vectorStore.setSimilarityThreshold(config.rag.similarityThreshold);
         if (config.langsmithApiKey) this.tracer = getTracer(config.langsmithApiKey);
