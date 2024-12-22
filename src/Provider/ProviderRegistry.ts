@@ -11,6 +11,7 @@ import { EmbedProvider } from './EmbedProvider';
 export type ProviderConfig = OpenAIConfig | OllamaConfig;
 export const RegisteredProviders = ['OpenAI', 'Ollama'] as const;
 export type RegisteredProvider = (typeof RegisteredProviders)[number];
+export type BaseProviderConfigs = { "OpenAI": OpenAIConfig, "Ollama": OllamaConfig };
 
 export type GenModelName = OpenAIGenModel | OllamaGenModel;
 export type EmbedModelName = OpenAIEmbedModel | OllamaEmbedModel;
@@ -30,16 +31,11 @@ export class ProviderRegistry {
         this.genProviders["Ollama"] = new OllamaGen(this.baseProviders["Ollama"] as BaseProvider<OllamaConfig>);
     }
 
-    async setupProviders(configs: Partial<{ [provider in RegisteredProvider]: ProviderConfig }>) {
+    async setupProviders(configs: Partial<BaseProviderConfigs>) {
         for (const provider in configs) {
-            if (configs[provider as RegisteredProvider] === undefined)
-                continue;
-            await this.setupProvider(provider as RegisteredProvider, configs[provider as RegisteredProvider]!);
+            if (configs[provider as RegisteredProvider] === undefined) continue;
+            await this.baseProviders[provider as RegisteredProvider].setup(configs[provider as RegisteredProvider]!);
         }
-    }
-
-    async setupProvider(providerName: RegisteredProvider, config: ProviderConfig) {
-        await this.baseProviders[providerName].setup(config);
     }
 
     getGenProvider(providerName: RegisteredProvider): GenProvider<ProviderConfig> {

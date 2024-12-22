@@ -15,15 +15,14 @@ import { Language, Prompts } from './Prompts';
 import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
 import { OramaStore, VectorStoreBackup } from './VectorStore';
 import Log, { LogLvl } from './Logging';
-import { EmbedModelName, GenModelName, ProviderConfig, ProviderRegistry, RegisteredProvider } from './Provider/ProviderRegistry';
+import { BaseProviderConfigs, EmbedModelName, GenModelName, ProviderConfig, ProviderRegistry, RegisteredProvider } from './Provider/ProviderRegistry';
 import { GenModelConfig, GenProvider } from './Provider/GenProvider';
 import { EmbedModelConfig, EmbedProvider } from './Provider/EmbedProvider';
 
-
 export interface PapaConfig {
-    baseProviders: Partial<{ [provider in RegisteredProvider]: ProviderConfig }>;
-    selEmbedProvider: RegisteredProvider;
+    baseProviders: Partial<BaseProviderConfigs>;
     selGenProvider: RegisteredProvider;
+    selEmbedProvider?: RegisteredProvider;
     selEmbedModel?: EmbedModelName;
     selGenModel?: GenModelName;
     embedModelConfig?: Partial<EmbedModelConfig>;
@@ -43,7 +42,7 @@ export class Papa {
     private vectorStore: OramaStore;
     private retriever: VectorStoreRetriever;
     private providerRegistry: ProviderRegistry = new ProviderRegistry();
-    private embedProvider: EmbedProvider<ProviderConfig>;
+    private embedProvider?: EmbedProvider<ProviderConfig>;
     private genProvider: GenProvider<ProviderConfig>;
     private recordManager: DexieRecordManager;
     private stopRunFlag = false;
@@ -59,8 +58,9 @@ export class Papa {
         if (config.baseProviders) await this.providerRegistry.setupProviders(config.baseProviders);
         if (config.selEmbedProvider) this.embedProvider = this.providerRegistry.getEmbedProvider(config.selEmbedProvider);
         if (config.selGenProvider) this.genProvider = this.providerRegistry.getGenProvider(config.selGenProvider);
-        if (config.selEmbedModel) this.embedProvider.setModel(config.selEmbedModel, config.embedModelConfig);
-        if (config.selEmbedProvider || config.selEmbedModel) await this.createVectorIndex();
+        if (config.selEmbedModel && !this.embedProvider) throw new Error('Embed Provider is not setuped');
+        if (config.selEmbedModel && this.embedProvider) this.embedProvider.setModel(config.selEmbedModel, config.embedModelConfig);
+        if ((config.selEmbedProvider || config.selEmbedModel) && this.embedProvider) this.createVectorIndex();
         if (config.selGenModel) this.genProvider.setModel(config.selGenModel, config.genModelConfig);
         if (config.numDocsToRetrieve) this.retriever = this.vectorStore.asRetriever({ k: config.numDocsToRetrieve });
         if (config.embedModelConfig?.similarityThreshold) this.vectorStore.setSimilarityThreshold(config.embedModelConfig.similarityThreshold);
@@ -69,6 +69,7 @@ export class Papa {
     }
 
     private async createVectorIndex() {
+        if (!this.embedProvider) throw new Error('Embed Provider is not setuped');
         this.vectorStore = new OramaStore(this.embedProvider.getModel().lc, { similarityThreshold: this.embedProvider.getModel().config.similarityThreshold });
         await this.vectorStore.create(this.embedProvider.getModel().name);
         this.retriever = this.vectorStore.asRetriever({ k: 20 });
@@ -80,7 +81,7 @@ export class Papa {
     }
 
     async isEmbedProviderSetuped() {
-        return await this.embedProvider.isSetuped();
+        return await this.embedProvider?.isSetuped();
     }
 
     embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {

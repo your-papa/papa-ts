@@ -3,7 +3,7 @@ import { obsidianDocumentLoader, ObsidianFile } from './ObsidianDocumentLoader';
 import { Language, Languages, Prompts } from './Prompts';
 import { LogLvl } from './Logging';
 import { BaseProvider } from './Provider/BaseProvider';
-import { GenModelName, EmbedModelName, ProviderConfig, RegisteredProvider, RegisteredProviders } from './Provider/ProviderRegistry';
+import { GenModelName, EmbedModelName, ProviderConfig, RegisteredProvider, RegisteredProviders, BaseProviderConfigs } from './Provider/ProviderRegistry';
 import { OllamaEmbedModels } from './Provider/Ollama/EmbedOllama';
 import { OllamaGenModels } from './Provider/Ollama/GenOllama';
 import { OpenAIEmbedModels } from './Provider/OpenAI/EmbedOpenAI';
@@ -37,4 +37,5 @@ export {
     OllamaGenModels,
     EmbedModelConfig,
     GenModelConfig,
+    BaseProviderConfigs,
 };
