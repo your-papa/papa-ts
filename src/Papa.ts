@@ -52,10 +52,10 @@ export class Papa {
     async init(config: PapaConfig) {
         Log.setLogLevel(config.logLvl ?? LogLvl.INFO);
         Log.info('Initializing...');
-        await this.updatePapaConfig(config);
+        await this.configure(config);
     }
 
-    async updatePapaConfig(config: Partial<PapaConfig>) {
+    async configure(config: Partial<PapaConfig>) {
         if (config.baseProviders) await this.providerRegistry.setupProviders(config.baseProviders);
         if (config.selEmbedProvider) this.embedProvider = this.providerRegistry.getEmbedProvider(config.selEmbedProvider);
         if (config.selGenProvider) this.genProvider = this.providerRegistry.getGenProvider(config.selGenProvider);
