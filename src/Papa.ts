@@ -15,18 +15,14 @@ import { Language, Prompts } from './Prompts';
 import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
 import { OramaStore, VectorStoreBackup } from './VectorStore';
 import Log, { LogLvl } from './Logging';
-import { BaseProviderConfigs, EmbedModelName, GenModelName, ProviderConfig, ProviderRegistry, RegisteredProvider } from './Provider/ProviderRegistry';
-import { GenModelConfig, GenProvider } from './Provider/GenProvider';
-import { EmbedModelConfig, EmbedProvider } from './Provider/EmbedProvider';
+import { ProviderConfig, ProviderRegistry, ProviderRegistryConfig, RegisteredEmbedProvider, RegisteredGenProvider, RegisteredProvider, RegisteredProviders } from './Provider/ProviderRegistry';
+import { GenProvider } from './Provider/GenProvider';
+import { EmbedProvider } from './Provider/EmbedProvider';
 
 export interface PapaConfig {
-    baseProviders: Partial<BaseProviderConfigs>;
-    selGenProvider: RegisteredProvider;
-    selEmbedProvider?: RegisteredProvider;
-    selEmbedModel?: EmbedModelName;
-    selGenModel?: GenModelName;
-    embedModelConfig?: Partial<EmbedModelConfig>;
-    genModelConfig?: Partial<GenModelConfig>;
+    providers: Partial<ProviderRegistryConfig>;
+    selEmbedProvider: RegisteredEmbedProvider;
+    selGenProvider: RegisteredGenProvider;
     numDocsToRetrieve?: number;
     langsmithApiKey?: string;
     logLvl?: LogLvl;
@@ -55,18 +51,38 @@ export class Papa {
     }
 
     async configure(config: Partial<PapaConfig>) {
-        if (config.baseProviders) await this.providerRegistry.setupProviders(config.baseProviders);
-        if (config.selEmbedProvider) this.embedProvider = this.providerRegistry.getEmbedProvider(config.selEmbedProvider);
+        if (config.providers) {
+            await this.providerRegistry.configure(config.providers);
+
+            for (const provider of RegisteredProviders) {
+                // If an Embed Provider is already selected, break the loop
+                if (config.selEmbedProvider) break;
+                // If a selected embedding model is part of the registered provider, create a new vector index
+                if (config.providers[provider]?.selEmbedModel && this.embedProvider === this.providerRegistry.getEmbedProvider(provider)) {
+                    await this.createVectorIndex();
+                    break;
+                }
+                // Update the similarity threshold for the embed models if they match the current embed provider's model
+                if (config.providers[provider]?.embedModels) {
+                    for (const model in config.providers[provider].embedModels) {
+                        if (this.embedProvider?.getModel().name === model) {
+                            this.vectorStore.setSimilarityThreshold(config.providers[provider].embedModels[model].similarityThreshold);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if (config.selEmbedProvider) {
+            this.embedProvider = this.providerRegistry.getEmbedProvider(config.selEmbedProvider);
+            await this.createVectorIndex();
+        }
         if (config.selGenProvider) this.genProvider = this.providerRegistry.getGenProvider(config.selGenProvider);
-        if (config.selEmbedModel && !this.embedProvider) throw new Error('Embed Provider is not setuped');
-        if (config.selEmbedModel && this.embedProvider) this.embedProvider.setModel(config.selEmbedModel, config.embedModelConfig);
-        if ((config.selEmbedProvider || config.selEmbedModel) && this.embedProvider) this.createVectorIndex();
-        if (config.selGenModel) this.genProvider.setModel(config.selGenModel, config.genModelConfig);
         if (config.numDocsToRetrieve) this.retriever = this.vectorStore.asRetriever({ k: config.numDocsToRetrieve });
-        if (config.embedModelConfig?.similarityThreshold) this.vectorStore.setSimilarityThreshold(config.embedModelConfig.similarityThreshold);
         if (config.langsmithApiKey) this.tracer = getTracer(config.langsmithApiKey);
         if (config.logLvl) Log.setLogLevel(config.logLvl);
     }
+
 
     private async createVectorIndex() {
         if (!this.embedProvider) throw new Error('Embed Provider is not setuped');

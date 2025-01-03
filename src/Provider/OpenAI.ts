@@ -1,11 +1,11 @@
-import Log from '../../Logging';
-import { BaseProvider } from '../BaseProvider';
+import Log from '../Logging';
+import { ProviderAPI } from './BaseProvider';
 
 export type OpenAIConfig = {
     apiKey: string;
 };
 
-export class OpenAIProvider extends BaseProvider<OpenAIConfig> {
+export class OpenAIProvider extends ProviderAPI<OpenAIConfig> {
     readonly isLocal = false;
 
     async setup(config: OpenAIConfig): Promise<boolean> {

@@ -1,7 +1,7 @@
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import { initChatModel } from "langchain/chat_models/universal"
-import { BaseProvider } from "./BaseProvider";
-import { GenModelName } from "./ProviderRegistry";
+import { initChatModel } from "langchain/chat_models/universal";
+
+import { BaseProvider, ProviderAPI } from "./BaseProvider";
 
 export type GenModelConfig = {
     temperature: number;
@@ -9,37 +9,39 @@ export type GenModelConfig = {
 };
 
 export type GenModel = {
-    name: GenModelName;
+    name: string;
     lc: BaseChatModel;
     config: GenModelConfig;
 }
 
-export abstract class GenProvider<TConfig> {
-    protected provider: BaseProvider<TConfig>;
+export class GenProvider<TConfig> extends BaseProvider<TConfig> {
     protected models: { [model: string]: GenModelConfig };
-    protected selectedModel: GenModelName;
     protected lcModel: BaseChatModel;
+
+    constructor(provider: ProviderAPI<TConfig>) {
+        super(provider);
+    }
 
     async getModels(): Promise<string[]> {
         const providerModels = await this.provider.getModels();
         return providerModels.filter((model) => model in this.models);
     }
 
-    async isSetuped(): Promise<boolean> {
-        return await this.provider.isSetuped();
-    }
-
-    async setModel(model: GenModelName, config?: Partial<GenModelConfig>): Promise<void> {
-        if (!(await this.getModels()).includes(model))
-            throw new Error('Gen Provider does not support the model ' + model);
-        this.selectedModel = model;
-        if (config) this.models[model] = { ...this.models[model], ...config };
-        this.createLCModel(model);
+    async setModels(models: { [model: string]: GenModelConfig }): Promise<void> {
+        const supportedModels = await this.getModels();
+        for (const model in models) {
+            if (!supportedModels.includes(model))
+                throw new Error('Gen Provider does not support the model ' + model);
+            this.models[model] = { ...this.models[model], ...models[model] };
+        }
     }
 
     getModel(): GenModel {
         return { name: this.selectedModel, lc: this.lcModel, config: this.models[this.selectedModel] };
     }
 
-    protected abstract createLCModel(model: GenModelName): void;
+    protected async createLCModel() {
+        this.lcModel = await initChatModel(this.selectedModel, { streaming: true, ...this.models[this.selectedModel], ...this.provider.getConnectionConfig() });
+    }
 }
+

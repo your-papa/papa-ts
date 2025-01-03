@@ -2,14 +2,10 @@ import { Papa, PapaConfig, PapaResponseStatus } from './Papa';
 import { obsidianDocumentLoader, ObsidianFile } from './ObsidianDocumentLoader';
 import { Language, Languages, Prompts } from './Prompts';
 import { LogLvl } from './Logging';
-import { BaseProvider } from './Provider/BaseProvider';
-import { GenModelName, EmbedModelName, ProviderConfig, RegisteredProvider, RegisteredProviders, BaseProviderConfigs } from './Provider/ProviderRegistry';
-import { OllamaEmbedModels } from './Provider/Ollama/EmbedOllama';
-import { OllamaGenModels } from './Provider/Ollama/GenOllama';
-import { OpenAIEmbedModels } from './Provider/OpenAI/EmbedOpenAI';
-import { OpenAIGenModels } from './Provider/OpenAI/GenOpenAI';
-import { OllamaConfig } from './Provider/Ollama/BaseOllama';
-import { OpenAIConfig } from './Provider/OpenAI/BaseOpenAI';
+import { ProviderAPI } from './Provider/BaseProvider';
+import { ProviderConfig, RegisteredProvider, RegisteredProviders, BaseProviderConfigs } from './Provider/ProviderRegistry';
+import { OllamaConfig } from './Provider/Ollama';
+import { OpenAIConfig } from './Provider/OpenAI';
 import { EmbedModelConfig } from './Provider/EmbedProvider';
 import { GenModelConfig } from './Provider/GenProvider';
 
@@ -23,18 +19,12 @@ export {
     Language,
     Languages,
     LogLvl,
-    BaseProvider,
-    GenModelName,
-    EmbedModelName,
+    ProviderAPI as BaseProvider,
     ProviderConfig,
     OpenAIConfig,
     OllamaConfig,
     RegisteredProvider,
     RegisteredProviders,
-    OpenAIEmbedModels,
-    OpenAIGenModels,
-    OllamaEmbedModels,
-    OllamaGenModels,
     EmbedModelConfig,
     GenModelConfig,
     BaseProviderConfigs,

@@ -1,48 +1,60 @@
-import { BaseProvider } from './BaseProvider';
-import { OllamaProvider, OllamaConfig } from './Ollama/BaseOllama';
-import { OpenAIProvider, OpenAIConfig } from './OpenAI/BaseOpenAI';
-import { OpenAIGen, OpenAIGenModel } from './OpenAI/GenOpenAI';
-import { OllamaGen, OllamaGenModel } from './Ollama/GenOllama';
-import { OpenAIEmbed, OpenAIEmbedModel } from './OpenAI/EmbedOpenAI';
-import { OllamaEmbed, OllamaEmbedModel } from './Ollama/EmbedOllama';
-import { GenProvider } from './GenProvider';
-import { EmbedProvider } from './EmbedProvider';
+import { ProviderAPI } from './BaseProvider';
+import { OllamaProvider, OllamaConfig } from './Ollama';
+import { OpenAIProvider, OpenAIConfig } from './OpenAI';
+import { GenModelConfig, GenProvider } from './GenProvider';
+import { EmbedModelConfig, EmbedProvider } from './EmbedProvider';
 
-export type ProviderConfig = OpenAIConfig | OllamaConfig;
 export const RegisteredProviders = ['OpenAI', 'Ollama'] as const;
-export type RegisteredProvider = (typeof RegisteredProviders)[number];
 export type BaseProviderConfigs = { "OpenAI": OpenAIConfig, "Ollama": OllamaConfig };
+export const RegisteredGenProviders = ['OpenAI', 'Ollama'] as const;
+export const RegisteredEmbedProviders = ['OpenAI', 'Ollama'] as const;
 
-export type GenModelName = OpenAIGenModel | OllamaGenModel;
-export type EmbedModelName = OpenAIEmbedModel | OllamaEmbedModel;
+export type ProviderConfig = BaseProviderConfigs[keyof BaseProviderConfigs];
+export type RegisteredProvider = (typeof RegisteredProviders)[number];
+export type RegisteredGenProvider = (typeof RegisteredGenProviders)[number];
+export type RegisteredEmbedProvider = (typeof RegisteredEmbedProviders)[number];
+
+export type ProviderRegistryConfig = {
+    [provider in RegisteredProvider]: Partial<{
+        config: BaseProviderConfigs[provider];
+        selEmbedModel: string;
+        embedModels: Record<string, EmbedModelConfig>;
+        selGenModel: string;
+        genModels: Record<string, GenModelConfig>;
+    }>;
+};
 
 
 export class ProviderRegistry {
-    private baseProviders: { [provider in RegisteredProvider]: BaseProvider<ProviderConfig> };
-    private genProviders: { [provider in RegisteredProvider]: GenProvider<ProviderConfig> };
-    private embedProviders: { [provider in RegisteredProvider]: EmbedProvider<ProviderConfig> };
+    private baseProviders: { [provider in RegisteredProvider]: ProviderAPI<ProviderConfig> };
+    private genProviders: { [provider in RegisteredGenProvider]: GenProvider<ProviderConfig> };
+    private embedProviders: { [provider in RegisteredEmbedProvider]: EmbedProvider<ProviderConfig> };
 
     constructor() {
         this.baseProviders["OpenAI"] = new OpenAIProvider();
-        this.embedProviders["OpenAI"] = new OpenAIEmbed(this.baseProviders["OpenAI"] as BaseProvider<OpenAIConfig>);
-        this.genProviders["OpenAI"] = new OpenAIGen(this.baseProviders["OpenAI"] as BaseProvider<OpenAIConfig>);
         this.baseProviders["Ollama"] = new OllamaProvider();
-        this.embedProviders["Ollama"] = new OllamaEmbed(this.baseProviders["Ollama"] as BaseProvider<OllamaConfig>);
-        this.genProviders["Ollama"] = new OllamaGen(this.baseProviders["Ollama"] as BaseProvider<OllamaConfig>);
+        for (const provider of RegisteredEmbedProviders)
+            this.embedProviders[provider] = new EmbedProvider(this.baseProviders[provider]);
+        for (const provider of RegisteredGenProviders)
+            this.genProviders[provider] = new GenProvider(this.baseProviders[provider]);
     }
 
-    async setupProviders(configs: Partial<BaseProviderConfigs>) {
-        for (const provider in configs) {
-            if (configs[provider as RegisteredProvider] === undefined) continue;
-            await this.baseProviders[provider as RegisteredProvider].setup(configs[provider as RegisteredProvider]!);
+    async configure(config: Partial<ProviderRegistryConfig>) {
+        for (const provider of RegisteredProviders) {
+            if (!config[provider]) continue;
+            if (config[provider].config) await this.baseProviders[provider].setup(config[provider].config);
+            if (config[provider].embedModels) await this.embedProviders[provider].setModels(config[provider].embedModels);
+            if (config[provider].selEmbedModel) await this.embedProviders[provider].setModel(config[provider].selEmbedModel);
+            if (config[provider].genModels) await this.genProviders[provider].setModels(config[provider].genModels);
+            if (config[provider].selGenModel) await this.genProviders[provider].setModel(config[provider].selGenModel);
         }
     }
 
-    getGenProvider(providerName: RegisteredProvider): GenProvider<ProviderConfig> {
+    getGenProvider(providerName: RegisteredGenProvider): GenProvider<ProviderConfig> {
         return this.genProviders[providerName];
     }
 
-    getEmbedProvider(providerName: RegisteredProvider): EmbedProvider<ProviderConfig> {
+    getEmbedProvider(providerName: RegisteredEmbedProvider): EmbedProvider<ProviderConfig> {
         return this.embedProviders[providerName];
     }
 }

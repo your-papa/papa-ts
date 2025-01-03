@@ -1,10 +1,10 @@
-import { BaseProvider } from "../BaseProvider";
-import Log from "../../Logging";
+import { ProviderAPI } from "./BaseProvider";
+import Log from "../Logging";
 
 export type OllamaConfig = {
     baseUrl: string;
 };
-export class OllamaProvider extends BaseProvider<OllamaConfig> {
+export class OllamaProvider extends ProviderAPI<OllamaConfig> {
     readonly isLocal = true;
 
     async setup(config: OllamaConfig): Promise<boolean> {
