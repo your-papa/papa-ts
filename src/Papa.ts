@@ -92,6 +92,10 @@ export class Papa {
         this.recordManager = new DexieRecordManager('RecordManager');
     }
 
+    getProvider(providerName: RegisteredProvider) {
+        return this.providerRegistry.getProvider(providerName);
+    }
+
     async isGenProviderSetuped() {
         return await this.genProvider.isSetuped();
     }

@@ -50,6 +50,10 @@ export class ProviderRegistry {
         }
     }
 
+    getProvider(providerName: RegisteredProvider): ProviderAPI<ProviderConfig> {
+        return this.baseProviders[providerName];
+    }
+
     getGenProvider(providerName: RegisteredGenProvider): GenProvider<ProviderConfig> {
         return this.genProviders[providerName];
     }
