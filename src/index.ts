@@ -19,7 +19,7 @@ export {
     Language,
     Languages,
     LogLvl,
-    ProviderAPI as BaseProvider,
+    ProviderAPI,
     ProviderConfig,
     OpenAIConfig,
     OllamaConfig,
