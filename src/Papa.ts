@@ -21,7 +21,7 @@ import { EmbedProvider } from './EmbedProvider';
 
 export interface PapaConfig {
     providers: Partial<ProviderRegistryConfig>;
-    selEmbedProvider: RegisteredEmbedProvider;
+    selEmbedProvider?: RegisteredEmbedProvider;
     selGenProvider: RegisteredGenProvider;
     numDocsToRetrieve?: number;
     langsmithApiKey?: string;
@@ -35,12 +35,13 @@ export interface PapaResponse {
 }
 
 export class Papa {
-    private vectorStore: OramaStore;
-    private retriever: VectorStoreRetriever;
+    // TODO refactor out into a separate class (Plain Chat, RAG Chat, etc.) to make it more modular and avoid having to check if the providers are setuped in every method
+    private vectorStore?: OramaStore;
+    private retriever?: VectorStoreRetriever;
     private providerRegistry: ProviderRegistry = new ProviderRegistry();
     private embedProvider?: EmbedProvider<ProviderConfig>;
-    private genProvider: GenProvider<ProviderConfig>;
-    private recordManager: DexieRecordManager;
+    private genProvider?: GenProvider<ProviderConfig>;
+    private recordManager?: DexieRecordManager;
     private stopRunFlag = false;
     private tracer?: LangChainTracer;
 
@@ -65,7 +66,7 @@ export class Papa {
                 // Update the similarity threshold for the embed models if they match the current embed provider's model
                 if (config.providers[provider]?.embedModels) {
                     for (const model in config.providers[provider].embedModels) {
-                        if (this.embedProvider?.getModel().name === model) {
+                        if (this.embedProvider?.getModel().name === model && this.vectorStore) {
                             this.vectorStore.setSimilarityThreshold(config.providers[provider].embedModels[model].similarityThreshold);
                             break;
                         }
@@ -78,7 +79,7 @@ export class Papa {
             await this.createVectorIndex();
         }
         if (config.selGenProvider) this.genProvider = this.providerRegistry.getGenProvider(config.selGenProvider);
-        if (config.numDocsToRetrieve) this.retriever = this.vectorStore.asRetriever({ k: config.numDocsToRetrieve });
+        if (config.numDocsToRetrieve && this.vectorStore) this.retriever = this.vectorStore.asRetriever({ k: config.numDocsToRetrieve });
         if (config.langsmithApiKey) this.tracer = getTracer(config.langsmithApiKey);
         if (config.logLvl) Log.setLogLevel(config.logLvl);
     }
@@ -97,7 +98,7 @@ export class Papa {
     }
 
     async isGenProviderSetuped() {
-        return await this.genProvider.isSetuped();
+        return await this.genProvider?.isSetuped();
     }
 
     async isEmbedProviderSetuped() {
@@ -106,14 +107,17 @@ export class Papa {
 
     embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {
         Log.info('Embedding documents in mode', indexingMode);
+        if (!this.recordManager || !this.vectorStore) throw new Error('Vector Store is not setuped');
         return index(documents, this.recordManager, this.vectorStore, indexingMode, 10);
     }
 
     async deleteDocuments(basedOn: { docs?: Document[]; sources?: string[] }) {
+        if (!this.recordManager || !this.vectorStore) throw new Error('Vector Store is not setuped');
         await unindex(basedOn, this.recordManager, this.vectorStore);
     }
 
     async createTitleFromChatHistory(lang: Language, chatHistory: string) {
+        if (!this.genProvider) throw new Error('Generation provider is not setuped');
         return RunnableSequence.from([PromptTemplate.fromTemplate(Prompts[lang].createTitle), this.genProvider.getModel().lc, new StringOutputParser()]).invoke({
             chatHistory,
         });
@@ -122,11 +126,11 @@ export class Papa {
     run(input: PipeInput) {
         Log.info('Running RAG... Input:', input);
         if (input.isRAG) {
-            if (!this.isEmbedProviderSetuped() || !this.isGenProviderSetuped())
+            if (!this.isEmbedProviderSetuped() || !this.isGenProviderSetuped() || !this.retriever || !this.genProvider)
                 throw new Error('RAG requires both Embedding and Generation providers to be setup');
             return this.streamProcessor(createRagPipe(this.retriever, this.genProvider.getModel(), input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined))
         } else {
-            if (!this.isGenProviderSetuped())
+            if (!this.isGenProviderSetuped() || !this.genProvider)
                 throw new Error('Conversation requires a Generation provider to be setup');
             return this.streamProcessor(createConversationPipe(this.genProvider.getModel(), input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined))
         }
@@ -171,10 +175,12 @@ export class Papa {
 
     async load(vectorStoreBackup: Uint8Array) {
         const { VectorStore, RecordManager } = decode(vectorStoreBackup) as { VectorStore: VectorStoreBackup; RecordManager: VectorIndexRecord[] };
+        if (!this.vectorStore || !this.recordManager) throw new Error('Vector Store is not setuped');
         await Promise.all([this.vectorStore.restore(VectorStore), this.recordManager.restore(RecordManager)]);
     }
 
     async getData(): Promise<Uint8Array> {
+        if (!this.vectorStore || !this.recordManager) throw new Error('Vector Store is not setuped');
         return encode({
             VectorStore: await this.vectorStore.getData(),
             RecordManager: await this.recordManager.getData(),

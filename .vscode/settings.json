@@ -18,5 +18,8 @@
         "titleBar.inactiveBackground": "#f9e64f99",
         "titleBar.inactiveForeground": "#15202b99"
     },
-    "peacock.remoteColor": "#f9e64f"
+    "peacock.remoteColor": "#f9e64f",
+    "jest.runMode": {
+        "type": "on-demand"
+    }
 }

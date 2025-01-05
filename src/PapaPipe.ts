@@ -1,4 +1,3 @@
-import { BaseCallbackConfig } from '@langchain/core/callbacks/manager';
 import { Document } from '@langchain/core/documents';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { RunnableConfig, RunnablePassthrough, RunnableSequence } from '@langchain/core/runnables';

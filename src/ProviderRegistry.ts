@@ -28,9 +28,9 @@ export type ProviderRegistryConfig = {
 
 
 export class ProviderRegistry {
-    private baseProviders: { [provider in RegisteredProvider]: ProviderAPI<ProviderConfig> };
-    private genProviders: { [provider in RegisteredGenProvider]: GenProvider<ProviderConfig> };
-    private embedProviders: { [provider in RegisteredEmbedProvider]: EmbedProvider<ProviderConfig> };
+    private baseProviders: { [provider in RegisteredProvider]: ProviderAPI<ProviderConfig> } = {} as any;
+    private genProviders: { [provider in RegisteredGenProvider]: GenProvider<ProviderConfig> } = {} as any;
+    private embedProviders: { [provider in RegisteredEmbedProvider]: EmbedProvider<ProviderConfig> } = {} as any;
 
     constructor() {
         this.baseProviders["OpenAI"] = new OpenAIProvider();

@@ -14,8 +14,8 @@ export type EmbedModel = {
 }
 
 export class EmbedProvider<TProviderConfig extends object> extends BaseProvider<TProviderConfig> {
-    protected models: { [model: string]: EmbedModelConfig };
-    protected lcModel: Embeddings;
+    protected models: { [model: string]: EmbedModelConfig } = {};
+    protected lcModel?: Embeddings;
 
     constructor(provider: ProviderAPI<TProviderConfig>) {
         super(provider);
@@ -27,7 +27,7 @@ export class EmbedProvider<TProviderConfig extends object> extends BaseProvider<
     }
 
     async setModels(models: { [model: string]: EmbedModelConfig }): Promise<void> {
-        const supportedModels = await this.getModels();
+        const supportedModels = await this.provider.getModels();
         for (const model in models) {
             if (!supportedModels.includes(model))
                 throw new Error('Embed Provider does not support the model ' + model);
@@ -35,6 +35,7 @@ export class EmbedProvider<TProviderConfig extends object> extends BaseProvider<
         }
     }
     getModel(): EmbedModel {
+        if (!this.selectedModel || !this.lcModel) throw new Error('No embed model selected');
         return { name: this.selectedModel, lc: this.lcModel, config: this.models[this.selectedModel] };
     }
 

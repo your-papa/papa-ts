@@ -1,9 +1,9 @@
 import { RegisteredProvider } from "./ProviderRegistry";
 
 export abstract class ProviderAPI<TConfig> {
-    readonly isLocal: boolean;
-    readonly name: RegisteredProvider;
-    protected connectionConfig: TConfig;
+    abstract readonly isLocal: boolean;
+    abstract readonly name: RegisteredProvider;
+    protected connectionConfig: TConfig = {} as TConfig;
     protected isSetupComplete: boolean = false;
 
     abstract setup(config: TConfig): Promise<boolean>;
@@ -25,14 +25,14 @@ export abstract class ProviderAPI<TConfig> {
 
 export abstract class BaseProvider<TConfig> {
     protected provider: ProviderAPI<TConfig>;
-    protected selectedModel: string;
+    protected selectedModel?: string;
 
     constructor(provider: ProviderAPI<TConfig>) {
         this.provider = provider;
     }
 
     async isSetuped(): Promise<boolean> {
-        return await this.provider.isSetuped();
+        return await this.provider.isSetuped() && !!this.selectedModel;
     }
 
     async setModel(model: string): Promise<void> {
