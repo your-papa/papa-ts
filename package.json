@@ -43,6 +43,7 @@
         "@langchain/anthropic": "^0.3.11",
         "@langchain/core": "^0.3.26",
         "@langchain/ollama": "^0.1.4",
+        "@langchain/openai": "^0.3.16",
         "@msgpack/msgpack": "^3.0.0-beta2",
         "@orama/orama": "^3.0.1",
         "@orama/plugin-data-persistence": "^3.0.1",

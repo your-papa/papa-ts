@@ -1,15 +1,17 @@
 import Log from '../Logging';
 import { ProviderAPI } from './BaseProvider';
 
-export type OpenAIConfig = {
+export type CustomOpenAIConfig = {
+    baseUrl: string;
     apiKey: string;
 };
 
-export class OpenAIProvider extends ProviderAPI<OpenAIConfig> {
+export class CustomOpenAIProvider extends ProviderAPI<CustomOpenAIConfig> {
     readonly isLocal = false;
 
-    async setup(config: OpenAIConfig): Promise<boolean> {
-        this.connectionConfig = config;
+    async setup(config: CustomOpenAIConfig): Promise<boolean> {
+        const baseUrl = config.baseUrl.endsWith('/') ? config.baseUrl : config.baseUrl + '/';
+        this.connectionConfig = { ...config, baseUrl };
         this.isSetupComplete = (await this.getModels()).length > 0;
         if (!this.isSetupComplete) Log.debug('OpenAI is not running');
         return this.isSetupComplete;
@@ -17,7 +19,7 @@ export class OpenAIProvider extends ProviderAPI<OpenAIConfig> {
 
     async getModels(): Promise<string[]> {
         try {
-            const modelRes = await fetch('https://api.openai.com/v1/models', {
+            const modelRes = await fetch(`${this.connectionConfig.baseUrl}api/models`, {
                 method: 'GET',
                 headers: {
                     Authorization: `Bearer ${this.connectionConfig.apiKey}`,

@@ -4,11 +4,12 @@ import { OpenAIProvider, OpenAIConfig } from './OpenAI';
 import { GenModelConfig, GenProvider } from './GenProvider';
 import { EmbedModelConfig, EmbedProvider } from './EmbedProvider';
 import { AnthropicConfig, AnthropicProvider } from './Anthropic';
+import { CustomOpenAIConfig, CustomOpenAIProvider } from './CustomOpenAI';
 
-export const RegisteredProviders = ['OpenAI', 'Ollama', 'Anthropic'] as const;
-export type BaseProviderConfigs = { "OpenAI": OpenAIConfig, "Ollama": OllamaConfig, "Anthropic": AnthropicConfig };
-export const RegisteredGenProviders = ['OpenAI', 'Ollama', 'Anthropic'] as const;
-export const RegisteredEmbedProviders = ['OpenAI', 'Ollama'] as const;
+export const RegisteredProviders = ['OpenAI', 'CustomOpenAI', 'Ollama', 'Anthropic'] as const;
+export type BaseProviderConfigs = { "OpenAI": OpenAIConfig, "CustomOpenAI": CustomOpenAIConfig, "Ollama": OllamaConfig, "Anthropic": AnthropicConfig };
+export const RegisteredGenProviders = ['OpenAI', 'CustomOpenAI', 'Ollama', 'Anthropic'] as const;
+export const RegisteredEmbedProviders = ['OpenAI', 'CustomOpenAI', 'Ollama'] as const;
 
 export type ProviderConfig = BaseProviderConfigs[keyof BaseProviderConfigs];
 export type RegisteredProvider = (typeof RegisteredProviders)[number];
@@ -33,6 +34,7 @@ export class ProviderRegistry {
 
     constructor() {
         this.baseProviders["OpenAI"] = new OpenAIProvider();
+        this.baseProviders["CustomOpenAI"] = new CustomOpenAIProvider();
         this.baseProviders["Ollama"] = new OllamaProvider();
         this.baseProviders["Anthropic"] = new AnthropicProvider();
         for (const provider of RegisteredEmbedProviders)
