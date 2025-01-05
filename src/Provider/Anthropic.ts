@@ -1,5 +1,5 @@
 import Log from '../Logging';
-import { ProviderAPI } from './BaseProvider';
+import { ProviderAPI } from '../BaseProvider';
 
 export type AnthropicConfig = {
     apiKey: string;
@@ -7,6 +7,7 @@ export type AnthropicConfig = {
 
 export class AnthropicProvider extends ProviderAPI<AnthropicConfig> {
     readonly isLocal = false;
+    readonly name = 'Anthropic';
 
     async setup(config: AnthropicConfig): Promise<boolean> {
         this.connectionConfig = config;

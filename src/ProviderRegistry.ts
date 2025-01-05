@@ -1,10 +1,10 @@
 import { ProviderAPI } from './BaseProvider';
-import { OllamaProvider, OllamaConfig } from './Ollama';
-import { OpenAIProvider, OpenAIConfig } from './OpenAI';
+import { OllamaProvider, OllamaConfig } from './Provider/Ollama';
+import { OpenAIProvider, OpenAIConfig } from './Provider/OpenAI';
 import { GenModelConfig, GenProvider } from './GenProvider';
 import { EmbedModelConfig, EmbedProvider } from './EmbedProvider';
-import { AnthropicConfig, AnthropicProvider } from './Anthropic';
-import { CustomOpenAIConfig, CustomOpenAIProvider } from './CustomOpenAI';
+import { AnthropicConfig, AnthropicProvider } from './Provider/Anthropic';
+import { CustomOpenAIConfig, CustomOpenAIProvider } from './Provider/CustomOpenAI';
 
 export const RegisteredProviders = ['OpenAI', 'CustomOpenAI', 'Ollama', 'Anthropic'] as const;
 export type BaseProviderConfigs = { "OpenAI": OpenAIConfig, "CustomOpenAI": CustomOpenAIConfig, "Ollama": OllamaConfig, "Anthropic": AnthropicConfig };

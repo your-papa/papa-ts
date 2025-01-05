@@ -39,11 +39,10 @@ export class EmbedProvider<TProviderConfig extends object> extends BaseProvider<
     }
 
     protected createLCModel() {
-        const connectionConfig = this.provider.getConnectionConfig();
-        if ('apiKey' in connectionConfig) {
-            this.lcModel = new OpenAIEmbeddings({ ...connectionConfig, modelName: this.selectedModel });
-        } else if ('baseUrl' in connectionConfig) {
-            this.lcModel = new OllamaEmbeddings({ ...connectionConfig, model: this.selectedModel });
+        if (this.provider.name === 'OpenAI' || this.provider.name === 'CustomOpenAI') {
+            this.lcModel = new OpenAIEmbeddings({ ...this.provider.getConnectionConfig(), modelName: this.selectedModel });
+        } else if (this.provider.name === 'Ollama') {
+            this.lcModel = new OllamaEmbeddings({ ...this.provider.getConnectionConfig(), model: this.selectedModel });
         } else {
             throw new Error('Unsupported provider configuration');
         }

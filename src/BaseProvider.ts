@@ -1,5 +1,8 @@
+import { RegisteredProvider } from "./ProviderRegistry";
+
 export abstract class ProviderAPI<TConfig> {
     readonly isLocal: boolean;
+    readonly name: RegisteredProvider;
     protected connectionConfig: TConfig;
     protected isSetupComplete: boolean = false;
 

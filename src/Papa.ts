@@ -15,9 +15,9 @@ import { Language, Prompts } from './Prompts';
 import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
 import { OramaStore, VectorStoreBackup } from './VectorStore';
 import Log, { LogLvl } from './Logging';
-import { ProviderConfig, ProviderRegistry, ProviderRegistryConfig, RegisteredEmbedProvider, RegisteredEmbedProviders, RegisteredGenProvider, RegisteredProvider, RegisteredProviders } from './Provider/ProviderRegistry';
-import { GenProvider } from './Provider/GenProvider';
-import { EmbedProvider } from './Provider/EmbedProvider';
+import { ProviderConfig, ProviderRegistry, ProviderRegistryConfig, RegisteredEmbedProvider, RegisteredEmbedProviders, RegisteredGenProvider, RegisteredProvider, RegisteredProviders } from './ProviderRegistry';
+import { GenProvider } from './GenProvider';
+import { EmbedProvider } from './EmbedProvider';
 
 export interface PapaConfig {
     providers: Partial<ProviderRegistryConfig>;

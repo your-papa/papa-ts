@@ -1,5 +1,5 @@
 import Log from '../Logging';
-import { ProviderAPI } from './BaseProvider';
+import { ProviderAPI } from '../BaseProvider';
 
 export type OpenAIConfig = {
     apiKey: string;
@@ -7,6 +7,7 @@ export type OpenAIConfig = {
 
 export class OpenAIProvider extends ProviderAPI<OpenAIConfig> {
     readonly isLocal = false;
+    readonly name = 'OpenAI';
 
     async setup(config: OpenAIConfig): Promise<boolean> {
         this.connectionConfig = config;

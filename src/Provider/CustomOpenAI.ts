@@ -1,5 +1,5 @@
 import Log from '../Logging';
-import { ProviderAPI } from './BaseProvider';
+import { ProviderAPI } from '../BaseProvider';
 
 export type CustomOpenAIConfig = {
     baseUrl: string;
@@ -8,6 +8,7 @@ export type CustomOpenAIConfig = {
 
 export class CustomOpenAIProvider extends ProviderAPI<CustomOpenAIConfig> {
     readonly isLocal = false;
+    readonly name = 'CustomOpenAI';
 
     async setup(config: CustomOpenAIConfig): Promise<boolean> {
         const baseUrl = config.baseUrl.endsWith('/') ? config.baseUrl : config.baseUrl + '/';
