@@ -15,7 +15,7 @@ import { Language, Prompts } from './Prompts';
 import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
 import { OramaStore, VectorStoreBackup } from './VectorStore';
 import Log, { LogLvl } from './Logging';
-import { ProviderConfig, ProviderRegistry, ProviderRegistryConfig, RegisteredEmbedProvider, RegisteredGenProvider, RegisteredProvider, RegisteredProviders } from './Provider/ProviderRegistry';
+import { ProviderConfig, ProviderRegistry, ProviderRegistryConfig, RegisteredEmbedProvider, RegisteredEmbedProviders, RegisteredGenProvider, RegisteredProvider, RegisteredProviders } from './Provider/ProviderRegistry';
 import { GenProvider } from './Provider/GenProvider';
 import { EmbedProvider } from './Provider/EmbedProvider';
 
@@ -54,7 +54,7 @@ export class Papa {
         if (config.providers) {
             await this.providerRegistry.configure(config.providers);
 
-            for (const provider of RegisteredProviders) {
+            for (const provider of RegisteredEmbedProviders) {
                 // If an Embed Provider is already selected, break the loop
                 if (config.selEmbedProvider) break;
                 // If a selected embedding model is part of the registered provider, create a new vector index

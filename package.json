@@ -40,6 +40,7 @@
     "dependencies": {
         "@codemirror/state": "^6.0.0",
         "@codemirror/view": "^6.0.0",
+        "@langchain/anthropic": "^0.3.11",
         "@langchain/core": "^0.3.26",
         "@langchain/ollama": "^0.1.4",
         "@msgpack/msgpack": "^3.0.0-beta2",
