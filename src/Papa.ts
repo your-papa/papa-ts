@@ -1,11 +1,5 @@
 import Log, { LogLvl } from './Logging';
-import {
-    ProviderRegistry,
-    ProviderRegistryConfig,
-    RegisteredEmbedProvider,
-    RegisteredGenProvider,
-    RegisteredProvider,
-} from './ProviderRegistry/ProviderRegistry';
+import { ProviderRegistry, ProviderRegistryConfig } from './ProviderRegistry/ProviderRegistry';
 import { BaseAssistant, PipeInput } from './AssistantFactory/BaseAssistant';
 import { createAssistant, Assistant, AssistantConfigType } from './AssistantFactory/AssistantFactory';
 
