@@ -39,15 +39,8 @@ export class Papa {
         return new Papa(providerRegistry, assistant);
     }
 
-    getProvider(providerName: RegisteredProvider) {
-        return this.providerRegistry.getProvider(providerName);
-    }
-
-    getGenProvider(providerName: RegisteredGenProvider) {
-        return this.providerRegistry.getGenProvider(providerName);
-    }
-    getEmbedProvider(providerName: RegisteredEmbedProvider) {
-        return this.providerRegistry.getEmbedProvider(providerName);
+    getProviderRegistry() {
+        return this.providerRegistry;
     }
 
     getAssistant() {
