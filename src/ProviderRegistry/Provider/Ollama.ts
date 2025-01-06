@@ -1,5 +1,5 @@
-import { ProviderAPI } from "../BaseProvider";
-import Log from "../../Logging";
+import { ProviderAPI } from '../BaseProvider';
+import Log from '../../Logging';
 
 export type OllamaConfig = {
     baseUrl: string;

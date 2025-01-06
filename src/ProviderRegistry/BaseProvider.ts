@@ -1,4 +1,4 @@
-import { RegisteredProvider } from "./ProviderRegistry";
+import { RegisteredProvider } from './ProviderRegistry';
 
 export abstract class ProviderAPI<TConfig> {
     abstract readonly isLocal: boolean;
@@ -25,7 +25,6 @@ export abstract class ProviderAPI<TConfig> {
 
 export abstract class BaseProvider<TConfig> {
     protected provider: ProviderAPI<TConfig>;
-    protected selectedModel?: string;
 
     constructor(provider: ProviderAPI<TConfig>) {
         this.provider = provider;
@@ -35,14 +34,9 @@ export abstract class BaseProvider<TConfig> {
         return await this.provider.isSetuped();
     }
 
-    async setModel(model: string): Promise<void> {
-        if (!(await this.getModels()).includes(model))
-            throw new Error('Provider does not support the model ' + model);
-        this.selectedModel = model;
-        this.createLCModel();
-    }
+    abstract getModels(): Promise<string[]>;
+    abstract registerModels(models: { [model: string]: any }): Promise<void>;
+    abstract useModel(model: string): void;
 
-    protected abstract getModels(): Promise<string[]>;
-    protected abstract registerModels(models: { [model: string]: any }): Promise<void>;
-    protected abstract createLCModel(): void;
+    protected abstract createLCModel(model: string): void;
 }

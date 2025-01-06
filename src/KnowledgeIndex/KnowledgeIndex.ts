@@ -4,8 +4,7 @@ import { decode, encode } from '@msgpack/msgpack';
 import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
 import { OramaStore, VectorStoreBackup } from './VectorStore';
 import Log from '../Logging';
-import { ProviderConfig } from '../ProviderRegistry/ProviderRegistry';
-import { EmbedProvider } from '../ProviderRegistry/EmbedProvider';
+import { EmbedModel } from '../ProviderRegistry/EmbedProvider';
 
 export type IndexingMode = 'full' | 'byFile';
 
@@ -16,17 +15,16 @@ export class KnowledgeIndex {
 
     private constructor(vectorStore: OramaStore, numOfDocsToRetrieve: number) {
         this.vectorStore = vectorStore;
-        this.recordManager = new DexieRecordManager('RecordManager');;
+        this.recordManager = new DexieRecordManager('RecordManager');
         this.retriever = this.vectorStore.asRetriever({ k: numOfDocsToRetrieve });
     }
 
-    static async create(embedProvider: EmbedProvider<ProviderConfig>, numOfDocsToRetrieve: number) {
-        const { name, lc, config } = embedProvider.getModel();
-        const vectorStore = await OramaStore.create(name, lc, config.similarityThreshold);
+    static async create(embedModel: EmbedModel, numOfDocsToRetrieve: number) {
+        const vectorStore = await OramaStore.create(embedModel.name, embedModel.lc, embedModel.config.similarityThreshold);
         return new KnowledgeIndex(vectorStore, numOfDocsToRetrieve);
     }
 
-    async* embedDocuments(documents: Document[], mode: IndexingMode = 'full', batchSize = 10) {
+    async *embedDocuments(documents: Document[], mode: IndexingMode = 'full', batchSize = 10) {
         Log.info('Embedding documents in mode', mode);
         const indexStartTime = Date.now();
         let numAdded = 0;
@@ -63,7 +61,10 @@ export class KnowledgeIndex {
             yield { numAdded, numSkipped, numDeleted };
         }
         if (mode === 'byFile') {
-            const idsToDelete = await this.recordManager.getIdsToDelete({ indexStartTime, sources: [...new Set(documents.map((doc) => doc.metadata.filepath))] });
+            const idsToDelete = await this.recordManager.getIdsToDelete({
+                indexStartTime,
+                sources: [...new Set(documents.map((doc) => doc.metadata.filepath))],
+            });
             await Promise.all([this.vectorStore.delete({ ids: idsToDelete }), this.recordManager.deleteIds(idsToDelete)]);
             numDeleted += idsToDelete.length;
             Log.info(`Indexed by File: Added ${numAdded} documents, skipped ${numSkipped} documents, deleted ${numDeleted} documents`);

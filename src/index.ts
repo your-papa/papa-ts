@@ -1,4 +1,4 @@
-import { Papa, PapaConfig, PapaResponseStatus } from './Papa';
+import { Papa, PapaConfig } from './Papa';
 import { obsidianDocumentLoader, ObsidianFile } from './KnowledgeIndex/ObsidianDocumentLoader';
 import { Language, Languages, Prompts } from './Prompts';
 import { LogLvl } from './Logging';
@@ -8,11 +8,12 @@ import { OllamaConfig, OllamaProvider } from './ProviderRegistry/Provider/Ollama
 import { OpenAIConfig, OpenAIProvider } from './ProviderRegistry/Provider/OpenAI';
 import { EmbedModelConfig } from './ProviderRegistry/EmbedProvider';
 import { GenModelConfig } from './ProviderRegistry/GenProvider';
+import { AssistantResponseStatus } from './Assistant/BaseAssistant';
 
 export {
     Papa,
     PapaConfig,
-    PapaResponseStatus,
+    AssistantResponseStatus,
     obsidianDocumentLoader,
     ObsidianFile,
     Prompts,

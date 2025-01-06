@@ -21,8 +21,8 @@ export class AnthropicProvider extends ProviderAPI<AnthropicConfig> {
             const modelRes = await fetch('https://api.anthropic.com/v1/models', {
                 method: 'GET',
                 headers: {
-                    "x-api-key": `${this.connectionConfig.apiKey}`,
-                    "anthropic-version": "2023-06-01"
+                    'x-api-key': `${this.connectionConfig.apiKey}`,
+                    'anthropic-version': '2023-06-01',
                 },
             });
             if (!modelRes.ok) throw new Error('Failed to fetch models');

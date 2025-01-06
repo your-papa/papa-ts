@@ -1,7 +1,7 @@
-import { Embeddings } from "@langchain/core/embeddings";
-import { OpenAIEmbeddings } from "@langchain/openai";
-import { BaseProvider, ProviderAPI } from "./BaseProvider";
-import { OllamaEmbeddings } from "@langchain/ollama";
+import { Embeddings } from '@langchain/core/embeddings';
+import { OpenAIEmbeddings } from '@langchain/openai';
+import { BaseProvider, ProviderAPI } from './BaseProvider';
+import { OllamaEmbeddings } from '@langchain/ollama';
 
 export type EmbedModelConfig = {
     similarityThreshold: number;
@@ -11,11 +11,10 @@ export type EmbedModel = {
     name: string;
     lc: Embeddings;
     config: EmbedModelConfig;
-}
+};
 
 export class EmbedProvider<TProviderConfig> extends BaseProvider<TProviderConfig> {
     protected models: { [model: string]: EmbedModelConfig } = {};
-    protected lcModel?: Embeddings;
 
     constructor(provider: ProviderAPI<TProviderConfig>) {
         super(provider);
@@ -29,24 +28,23 @@ export class EmbedProvider<TProviderConfig> extends BaseProvider<TProviderConfig
     async registerModels(models: { [model: string]: EmbedModelConfig }): Promise<void> {
         const supportedModels = await this.provider.getModels();
         for (const model in models) {
-            if (!supportedModels.includes(model))
-                throw new Error('Embed Provider does not support the model ' + model);
+            if (!supportedModels.includes(model)) throw new Error('Embed Provider does not support the model ' + model);
             this.models[model] = { ...this.models[model], ...models[model] };
         }
     }
-    getModel(): EmbedModel {
-        if (!this.selectedModel || !this.lcModel) throw new Error('No embed model selected');
-        return { name: this.selectedModel, lc: this.lcModel, config: this.models[this.selectedModel] };
+
+    async useModel(model: string): Promise<EmbedModel> {
+        if (!(await this.getModels()).includes(model)) throw new Error('Provider does not support the model ' + model);
+        return { name: model, lc: this.createLCModel(model), config: this.models[model] };
     }
 
-    protected createLCModel() {
+    protected createLCModel(model: string): Embeddings {
         if (this.provider.name === 'OpenAI' || this.provider.name === 'CustomOpenAI') {
-            this.lcModel = new OpenAIEmbeddings({ ...this.provider.getConnectionConfig(), modelName: this.selectedModel });
+            return new OpenAIEmbeddings({ ...this.provider.getConnectionConfig(), modelName: model });
         } else if (this.provider.name === 'Ollama') {
-            this.lcModel = new OllamaEmbeddings({ ...this.provider.getConnectionConfig(), model: this.selectedModel });
+            return new OllamaEmbeddings({ ...this.provider.getConnectionConfig(), model: model });
         } else {
             throw new Error('Unsupported provider configuration');
         }
     }
 }
-
