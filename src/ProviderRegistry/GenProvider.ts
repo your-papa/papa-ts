@@ -4,6 +4,7 @@ import { BaseProvider, ProviderAPI } from './BaseProvider';
 import { ChatOpenAI, ClientOptions } from '@langchain/openai';
 import { ChatOllama } from '@langchain/ollama';
 import { ChatAnthropic } from '@langchain/anthropic';
+import { RegisteredGenProvider } from './ProviderRegistry';
 
 export type GenModelConfig = {
     temperature: number;
@@ -12,6 +13,10 @@ export type GenModelConfig = {
 
 export type GenModel = {
     name: string;
+    provider: RegisteredGenProvider;
+};
+
+export type GenModelFilled = GenModel & {
     lc: BaseChatModel;
     config: GenModelConfig;
 };
@@ -36,9 +41,9 @@ export class GenProvider<TConfig> extends BaseProvider<TConfig> {
         }
     }
 
-    async useModel(model: string): Promise<GenModel> {
+    async useModel(model: string): Promise<GenModelFilled> {
         if (!(await this.getModels()).includes(model)) throw new Error('Provider does not support the model ' + model);
-        return { name: model, lc: this.createLCModel(model), config: this.models[model] };
+        return { name: model, provider: this.provider.name as RegisteredGenProvider, lc: this.createLCModel(model), config: this.models[model] };
     }
 
     protected createLCModel(model: string) {

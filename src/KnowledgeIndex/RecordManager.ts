@@ -27,7 +27,12 @@ export class DexieRecordManager extends Dexie {
     }
 
     async exists(ids: string[]): Promise<boolean[]> {
-        const found = await this.records.where('id').anyOf(ids).toArray();
+        let found: VectorIndexRecord[] = [];
+        try {
+            found = await this.records.where('id').anyOf(ids).toArray();
+        } catch (error) {
+            Log.error('Error while checking if records exist', error);
+        }
         return ids.map((id) => found.some((record) => record.id === id));
     }
 

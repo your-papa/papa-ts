@@ -2,6 +2,7 @@ import { Embeddings } from '@langchain/core/embeddings';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { BaseProvider, ProviderAPI } from './BaseProvider';
 import { OllamaEmbeddings } from '@langchain/ollama';
+import { RegisteredEmbedProvider } from './ProviderRegistry';
 
 export type EmbedModelConfig = {
     similarityThreshold: number;
@@ -9,6 +10,10 @@ export type EmbedModelConfig = {
 
 export type EmbedModel = {
     name: string;
+    provider: RegisteredEmbedProvider;
+};
+
+export type EmbedModelFilled = EmbedModel & {
     lc: Embeddings;
     config: EmbedModelConfig;
 };
@@ -33,9 +38,9 @@ export class EmbedProvider<TProviderConfig> extends BaseProvider<TProviderConfig
         }
     }
 
-    async useModel(model: string): Promise<EmbedModel> {
+    async useModel(model: string): Promise<EmbedModelFilled> {
         if (!(await this.getModels()).includes(model)) throw new Error('Provider does not support the model ' + model);
-        return { name: model, lc: this.createLCModel(model), config: this.models[model] };
+        return { name: model, provider: this.provider.name as RegisteredEmbedProvider, lc: this.createLCModel(model), config: this.models[model] };
     }
 
     protected createLCModel(model: string): Embeddings {

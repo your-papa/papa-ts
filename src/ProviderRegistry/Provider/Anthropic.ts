@@ -12,7 +12,7 @@ export class AnthropicProvider extends ProviderAPI<AnthropicConfig> {
     async setup(config: AnthropicConfig): Promise<boolean> {
         this.connectionConfig = config;
         this.isSetupComplete = (await this.getModels()).length > 0;
-        if (!this.isSetupComplete) Log.debug('Anthropic is not running');
+        if (!this.isSetupComplete) Log.error('Anthropic API is not accessible. Please check your API key');
         return this.isSetupComplete;
     }
 
@@ -29,7 +29,7 @@ export class AnthropicProvider extends ProviderAPI<AnthropicConfig> {
             const { data } = await modelRes.json();
             return data.map((model: any) => model.id);
         } catch (error) {
-            Log.debug('Anthropic is not running', error);
+            Log.error('Anthropic API is not accessible. Please check your API key', error);
             return [];
         }
     }

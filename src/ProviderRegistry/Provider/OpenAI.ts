@@ -12,7 +12,7 @@ export class OpenAIProvider extends ProviderAPI<OpenAIConfig> {
     async setup(config: OpenAIConfig): Promise<boolean> {
         this.connectionConfig = config;
         this.isSetupComplete = (await this.getModels()).length > 0;
-        if (!this.isSetupComplete) Log.debug('OpenAI is not running');
+        if (!this.isSetupComplete) Log.error('OpenAI API is not accessible. Please check your API key');
         return this.isSetupComplete;
     }
 
@@ -28,7 +28,7 @@ export class OpenAIProvider extends ProviderAPI<OpenAIConfig> {
             const { data } = await modelRes.json();
             return data.map((model: any) => model.id);
         } catch (error) {
-            Log.debug('OpenAI is not running', error);
+            Log.error('OpenAI API is not accessible. Please check your API key', error);
             return [];
         }
     }

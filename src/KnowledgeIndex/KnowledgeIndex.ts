@@ -4,7 +4,7 @@ import { decode, encode } from '@msgpack/msgpack';
 import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
 import { OramaStore, VectorStoreBackup } from './VectorStore';
 import Log from '../Logging';
-import { EmbedModel } from '../ProviderRegistry/EmbedProvider';
+import { EmbedModel, EmbedModelFilled } from '../ProviderRegistry/EmbedProvider';
 
 export type IndexingMode = 'full' | 'byFile';
 
@@ -19,13 +19,12 @@ export class KnowledgeIndex {
         this.retriever = this.vectorStore.asRetriever({ k: numOfDocsToRetrieve });
     }
 
-    static async create(embedModel: EmbedModel, numOfDocsToRetrieve: number) {
+    static async create(embedModel: EmbedModelFilled, numOfDocsToRetrieve: number) {
         const vectorStore = await OramaStore.create(embedModel.name, embedModel.lc, embedModel.config.similarityThreshold);
         return new KnowledgeIndex(vectorStore, numOfDocsToRetrieve);
     }
 
     async *embedDocuments(documents: Document[], mode: IndexingMode = 'full', batchSize = 10) {
-        Log.info('Embedding documents in mode', mode);
         const indexStartTime = Date.now();
         let numAdded = 0;
         let numSkipped = 0;
@@ -35,7 +34,6 @@ export class KnowledgeIndex {
 
         for (const batch of batches) {
             const batchExists = await this.recordManager.exists(batch.map((doc) => doc.metadata.hash));
-
             const ids: string[] = [];
             const docsToIndex: Document[] = [];
             for (let i = 0; i < batch.length; i++) {
@@ -48,7 +46,6 @@ export class KnowledgeIndex {
                 ids.push(doc.metadata.hash);
                 docsToIndex.push(doc);
             }
-
             if (docsToIndex.length > 0) {
                 await this.vectorStore.addDocuments(docsToIndex);
                 numAdded += docsToIndex.length;

@@ -1,5 +1,5 @@
 import { RunnableConfig, RunnablePassthrough, RunnableSequence } from '@langchain/core/runnables';
-import { GenModel } from '../../ProviderRegistry/GenProvider';
+import { GenModel, GenModelFilled } from '../../ProviderRegistry/GenProvider';
 import { BaseAssistant, AssistantResponse, PipeInput } from '../BaseAssistant';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
@@ -9,7 +9,7 @@ import { Document } from '@langchain/core/documents';
 import Log from '../../Logging';
 import llamaTokenizer from 'llama-tokenizer-js';
 import { IndexingMode, KnowledgeIndex } from '../../KnowledgeIndex/KnowledgeIndex';
-import { EmbedModel } from '../../ProviderRegistry/EmbedProvider';
+import { EmbedModel, EmbedModelFilled } from '../../ProviderRegistry/EmbedProvider';
 
 export type RAGAssistantConfig = {
     embedModel: EmbedModel;
@@ -21,13 +21,16 @@ export type RAGAssistantConfig = {
 export class RAGAssistant extends BaseAssistant {
     private knowledgeIndex: KnowledgeIndex;
 
-    private constructor(knowledgeIndex: KnowledgeIndex, genModel: GenModel, lang?: Language, langsmithApiKey?: string) {
+    private constructor(knowledgeIndex: KnowledgeIndex, genModel: GenModelFilled, lang?: Language, langsmithApiKey?: string) {
         super(genModel, langsmithApiKey);
         this.knowledgeIndex = knowledgeIndex;
         this.lang = lang ?? 'en';
     }
 
-    static async create(config: RAGAssistantConfig, langsmithApiKey?: string) {
+    static async create(
+        config: { embedModel: EmbedModelFilled; genModel: GenModelFilled; numOfDocsToRetrieve?: number; lang?: Language },
+        langsmithApiKey?: string
+    ) {
         const knowledgeIndex = await KnowledgeIndex.create(config.embedModel, config.numOfDocsToRetrieve ?? 20);
         return new RAGAssistant(knowledgeIndex, config.genModel, config.lang, langsmithApiKey);
     }

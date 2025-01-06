@@ -11,7 +11,7 @@
     "scripts": {
         "build": "tsup",
         "build:watch": "tsup --watch",
-        "test": "jest"
+        "test": "DOTENV_CONFIG_PATH=.env.test jest --setupFiles=dotenv/config"
     },
     "repository": {
         "type": "git",

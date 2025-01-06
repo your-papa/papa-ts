@@ -16,12 +16,12 @@ export class OllamaProvider extends ProviderAPI<OllamaConfig> {
             if (response.status === 200) {
                 this.isSetupComplete = true;
             } else {
-                Log.debug(`Unexpected status code: ${response.status}`);
+                Log.error(`Unexpected status code: ${response.status}`);
                 // errorState.set('ollama-not-running');
                 this.isSetupComplete = false;
             }
         } catch (error) {
-            Log.debug('Ollama is not running or origins not correctly set', error);
+            Log.error('Ollama is not running or origins not correctly set', error);
             // errorState.set('ollama-not-running');
             this.isSetupComplete = false;
         }
@@ -44,7 +44,7 @@ export class OllamaProvider extends ProviderAPI<OllamaConfig> {
             const models: string[] = modelsData.map((model: { name: string }) => model.name);
             return models.map((model: string) => model.replace(':latest', ''));
         } catch (error) {
-            Log.debug('Ollama is not running', error);
+            Log.error('Ollama is not running', error);
             return [];
         }
     }

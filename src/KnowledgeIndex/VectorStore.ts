@@ -32,10 +32,7 @@ export class OramaStore extends VectorStore {
         return 'OramaStore';
     }
 
-    private constructor(
-        public embeddings: Embeddings,
-        args: Record<string, any>
-    ) {
+    private constructor(public embeddings: Embeddings, args: Record<string, any>) {
         super(embeddings, args);
         this.similarity = args.similarityThreshold;
         this.vectorSize = args.vectorSize;
@@ -75,6 +72,7 @@ export class OramaStore extends VectorStore {
     }
 
     async addVectors(vectors: number[][], documents: Document[]) {
+        Log.info('Adding vectors to OramaStore');
         const docs: VectorDocument[] = documents.map((document, index) => ({
             id: document.metadata.hash,
             filepath: document.metadata.filepath,

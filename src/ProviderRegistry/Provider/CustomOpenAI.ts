@@ -14,7 +14,7 @@ export class CustomOpenAIProvider extends ProviderAPI<CustomOpenAIConfig> {
         const baseUrl = config.baseUrl.endsWith('/') ? config.baseUrl : config.baseUrl + '/';
         this.connectionConfig = { ...config, baseUrl };
         this.isSetupComplete = (await this.getModels()).length > 0;
-        if (!this.isSetupComplete) Log.debug('OpenAI is not running');
+        if (!this.isSetupComplete) Log.error('Custom OpenAI API is not accessible. Please check your API key');
         return this.isSetupComplete;
     }
 
@@ -30,7 +30,7 @@ export class CustomOpenAIProvider extends ProviderAPI<CustomOpenAIConfig> {
             const { data } = await modelRes.json();
             return data.map((model: any) => model.id);
         } catch (error) {
-            Log.debug('OpenAI is not running', error);
+            Log.error('Custom OpenAI API is not accessible. Please check your API key', error);
             return [];
         }
     }
