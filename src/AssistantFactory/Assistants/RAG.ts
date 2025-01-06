@@ -1,15 +1,15 @@
 import { RunnableConfig, RunnablePassthrough, RunnableSequence } from '@langchain/core/runnables';
-import { GenModel } from '../ProviderRegistry/GenProvider';
-import { BaseAssistant, AssistantResponse, PipeInput } from './BaseAssistant';
+import { GenModel } from '../../ProviderRegistry/GenProvider';
+import { BaseAssistant, AssistantResponse, PipeInput } from '../BaseAssistant';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { Language, Prompts } from '../Prompts';
 import { applyPatch } from 'fast-json-patch';
 import { Document } from '@langchain/core/documents';
-import Log from '../Logging';
+import Log from '../../Logging';
 import llamaTokenizer from 'llama-tokenizer-js';
-import { IndexingMode, KnowledgeIndex } from '../KnowledgeIndex/KnowledgeIndex';
-import { EmbedModel } from '../ProviderRegistry/EmbedProvider';
+import { IndexingMode, KnowledgeIndex } from '../../KnowledgeIndex/KnowledgeIndex';
+import { EmbedModel } from '../../ProviderRegistry/EmbedProvider';
 
 export type RAGAssistantConfig = {
     embedModel: EmbedModel;
@@ -21,15 +21,15 @@ export type RAGAssistantConfig = {
 export class RAGAssistant extends BaseAssistant {
     private knowledgeIndex: KnowledgeIndex;
 
-    private constructor(knowledgeIndex: KnowledgeIndex, genModel: GenModel, lang?: Language) {
-        super(genModel);
+    private constructor(knowledgeIndex: KnowledgeIndex, genModel: GenModel, lang?: Language, langsmithApiKey?: string) {
+        super(genModel, langsmithApiKey);
         this.knowledgeIndex = knowledgeIndex;
         this.lang = lang ?? 'en';
     }
 
-    static async create(config: RAGAssistantConfig) {
+    static async create(config: RAGAssistantConfig, langsmithApiKey?: string) {
         const knowledgeIndex = await KnowledgeIndex.create(config.embedModel, config.numOfDocsToRetrieve ?? 20);
-        return new RAGAssistant(knowledgeIndex, config.genModel, config.lang);
+        return new RAGAssistant(knowledgeIndex, config.genModel, config.lang, langsmithApiKey);
     }
 
     run(input: PipeInput): AsyncGenerator<AssistantResponse> {

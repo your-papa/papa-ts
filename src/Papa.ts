@@ -1,13 +1,16 @@
 import Log, { LogLvl } from './Logging';
 import { ProviderRegistry, ProviderRegistryConfig, RegisteredProvider } from './ProviderRegistry/ProviderRegistry';
-import { BaseAssistant, PipeInput } from './Assistant/BaseAssistant';
-import { createAssistant, Assistant, AssistantConfig } from './Assistant/AssistantFactory';
+import { BaseAssistant, PipeInput } from './AssistantFactory/BaseAssistant';
+import { createAssistant, Assistant, AssistantConfig } from './AssistantFactory/AssistantFactory';
 
 export interface PapaConfig {
     providers: Partial<ProviderRegistryConfig>;
     assistant: Assistant;
     assistantConfig: AssistantConfig;
-    logLvl?: LogLvl;
+    debugging: {
+        langsmithApiKey?: string;
+        logLvl?: LogLvl;
+    };
 }
 
 export class Papa {
@@ -20,11 +23,11 @@ export class Papa {
     }
 
     static async init(config: PapaConfig) {
-        Log.setLogLevel(config.logLvl ?? LogLvl.INFO);
+        Log.setLogLevel(config.debugging.logLvl ?? LogLvl.INFO);
         Log.info('Initializing...');
         const providerRegistry = new ProviderRegistry();
         await providerRegistry.configure(config.providers);
-        return new Papa(providerRegistry, await createAssistant(config.assistant, config.assistantConfig));
+        return new Papa(providerRegistry, await createAssistant(config.assistant, config.assistantConfig, config.debugging.langsmithApiKey));
     }
 
     getProvider(providerName: RegisteredProvider) {

@@ -1,9 +1,10 @@
 import { LangChainTracer } from '@langchain/core/tracers/tracer_langchain';
-import { Language, Prompts } from '../Prompts';
+import { Language, Prompts } from './Prompts';
 import { GenModel } from '../ProviderRegistry/GenProvider';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
+import { getTracer } from './Langsmith';
 
 export type AssistantResponseStatus = 'startup' | 'retrieving' | 'reducing' | 'generating' | 'stopped';
 export interface AssistantResponse {
@@ -22,10 +23,10 @@ export abstract class BaseAssistant {
     protected lang: Language = 'en';
     protected stopRunFlag = false;
     protected tracer?: LangChainTracer;
-    // this.tracer = getTracer(config.langsmithApiKey)
 
-    constructor(genModel: GenModel) {
+    constructor(genModel: GenModel, langsmithApiKey?: string) {
         this.genModel = genModel;
+        if (langsmithApiKey) this.tracer = getTracer(langsmithApiKey);
     }
 
     abstract run(input: PipeInput): AsyncGenerator<AssistantResponse>;

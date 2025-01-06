@@ -1,6 +1,6 @@
 import { RunnableSequence } from '@langchain/core/runnables';
-import { GenModel } from '../ProviderRegistry/GenProvider';
-import { BaseAssistant, AssistantResponse, PipeInput } from './BaseAssistant';
+import { GenModel } from '../../ProviderRegistry/GenProvider';
+import { BaseAssistant, AssistantResponse, PipeInput } from '../BaseAssistant';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { Language, Prompts } from '../Prompts';
@@ -12,8 +12,8 @@ export type GeneralAssistantConfig = {
 };
 
 export class GeneralAssistant extends BaseAssistant {
-    constructor(config: GeneralAssistantConfig) {
-        super(config.genModel);
+    constructor(config: GeneralAssistantConfig, langsmithApiKey?: string) {
+        super(config.genModel, langsmithApiKey);
         this.lang = config.lang ?? 'en';
     }
 
