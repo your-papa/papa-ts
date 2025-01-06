@@ -47,11 +47,11 @@ export class ProviderRegistry {
         for (const provider of RegisteredProviders)
             if (config[provider]?.config) await this.baseProviders[provider].setup(config[provider].config);
         for (const provider of RegisteredEmbedProviders) {
-            if (config[provider]?.embedModels) await this.embedProviders[provider].setModels(config[provider].embedModels);
+            if (config[provider]?.embedModels) await this.embedProviders[provider].registerModels(config[provider].embedModels);
             if (config[provider]?.selEmbedModel) await this.embedProviders[provider].setModel(config[provider].selEmbedModel);
         }
         for (const provider of RegisteredGenProviders) {
-            if (config[provider]?.genModels) await this.genProviders[provider].setModels(config[provider].genModels);
+            if (config[provider]?.genModels) await this.genProviders[provider].registerModels(config[provider].genModels);
             if (config[provider]?.selGenModel) await this.genProviders[provider].setModel(config[provider].selGenModel);
         }
     }

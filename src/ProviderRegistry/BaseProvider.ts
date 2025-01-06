@@ -32,7 +32,7 @@ export abstract class BaseProvider<TConfig> {
     }
 
     async isSetuped(): Promise<boolean> {
-        return await this.provider.isSetuped() && !!this.selectedModel;
+        return await this.provider.isSetuped();
     }
 
     async setModel(model: string): Promise<void> {
@@ -43,6 +43,6 @@ export abstract class BaseProvider<TConfig> {
     }
 
     protected abstract getModels(): Promise<string[]>;
-    protected abstract setModels(models: { [model: string]: any }): Promise<void>;
+    protected abstract registerModels(models: { [model: string]: any }): Promise<void>;
     protected abstract createLCModel(): void;
 }

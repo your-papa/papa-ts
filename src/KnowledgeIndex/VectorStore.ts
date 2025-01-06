@@ -4,7 +4,7 @@ import { VectorStore } from '@langchain/core/vectorstores';
 import { Orama, Results, TypedDocument, create, insertMultiple, removeMultiple, search } from '@orama/orama';
 import { _deepClone } from 'fast-json-patch/module/helpers';
 
-import Log from './Logging';
+import Log from '../Logging';
 
 const vectorStoreSchema = {
     id: 'string',
@@ -32,31 +32,39 @@ export class OramaStore extends VectorStore {
         return 'OramaStore';
     }
 
-    constructor(
+    private constructor(
         public embeddings: Embeddings,
         args: Record<string, any>
     ) {
         super(embeddings, args);
         this.similarity = args.similarityThreshold;
+        this.vectorSize = args.vectorSize;
+        this.indexName = args.indexName;
+        this.db = create({
+            schema: {
+                ...vectorStoreSchema,
+                embedding: `vector[${args.vectorSize}]`,
+            } as const,
+            id: args.indexName,
+        });
     }
 
-    async create(indexName: string, vectorSize?: number) {
-        this.vectorSize = vectorSize ?? (await this.embeddings.embedQuery('test')).length;
-        this.indexName = indexName;
+    static async create(indexName: string, embeddings: Embeddings, similarityThreshold?: number, vectorSize?: number) {
+        vectorSize = vectorSize ?? (await embeddings.embedQuery('test')).length;
+        return new OramaStore(embeddings, { indexName, vectorSize, similarityThreshold });
+    }
+
+    restore(vectorStoreBackup: VectorStoreBackup) {
+        Log.debug('Restoring vectorstore from backup');
+        // vectorStoreBackup is an object and not an array for some reason
+        const docs = Object.keys(vectorStoreBackup.docs).map((key) => vectorStoreBackup.docs[Number(key)]);
         this.db = create({
             schema: {
                 ...vectorStoreSchema,
                 embedding: `vector[${this.vectorSize}]`,
             } as const,
-            id: indexName,
+            id: vectorStoreBackup.indexName,
         });
-    }
-
-    async restore(vectorStoreBackup: VectorStoreBackup) {
-        Log.debug('Restoring vectorstore from backup');
-        // vectorStoreBackup is an object and not an array for some reason
-        const docs = Object.keys(vectorStoreBackup.docs).map((key) => vectorStoreBackup.docs[Number(key)]);
-        await this.create(vectorStoreBackup.indexName, vectorStoreBackup.vectorSize);
         insertMultiple(this.db, docs);
         Log.info('Restored vectorstore from backup');
         Log.debug(this.db.data.docs.docs);

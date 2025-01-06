@@ -29,7 +29,7 @@ export class GenProvider<TConfig> extends BaseProvider<TConfig> {
         return providerModels.filter((model) => model in this.models);
     }
 
-    async setModels(models: { [model: string]: GenModelConfig }): Promise<void> {
+    async registerModels(models: { [model: string]: GenModelConfig }): Promise<void> {
         const supportedModels = await this.provider.getModels();
         for (const model in models) {
             if (!supportedModels.includes(model))

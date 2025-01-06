@@ -13,7 +13,7 @@ export type EmbedModel = {
     config: EmbedModelConfig;
 }
 
-export class EmbedProvider<TProviderConfig extends object> extends BaseProvider<TProviderConfig> {
+export class EmbedProvider<TProviderConfig> extends BaseProvider<TProviderConfig> {
     protected models: { [model: string]: EmbedModelConfig } = {};
     protected lcModel?: Embeddings;
 
@@ -26,7 +26,7 @@ export class EmbedProvider<TProviderConfig extends object> extends BaseProvider<
         return providerModels.filter((model) => model in this.models);
     }
 
-    async setModels(models: { [model: string]: EmbedModelConfig }): Promise<void> {
+    async registerModels(models: { [model: string]: EmbedModelConfig }): Promise<void> {
         const supportedModels = await this.provider.getModels();
         for (const model in models) {
             if (!supportedModels.includes(model))

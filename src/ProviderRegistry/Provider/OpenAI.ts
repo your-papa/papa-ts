@@ -1,35 +1,34 @@
-import Log from '../Logging';
+import Log from '../../Logging';
 import { ProviderAPI } from '../BaseProvider';
 
-export type AnthropicConfig = {
+export type OpenAIConfig = {
     apiKey: string;
 };
 
-export class AnthropicProvider extends ProviderAPI<AnthropicConfig> {
+export class OpenAIProvider extends ProviderAPI<OpenAIConfig> {
     readonly isLocal = false;
-    readonly name = 'Anthropic';
+    readonly name = 'OpenAI';
 
-    async setup(config: AnthropicConfig): Promise<boolean> {
+    async setup(config: OpenAIConfig): Promise<boolean> {
         this.connectionConfig = config;
         this.isSetupComplete = (await this.getModels()).length > 0;
-        if (!this.isSetupComplete) Log.debug('Anthropic is not running');
+        if (!this.isSetupComplete) Log.debug('OpenAI is not running');
         return this.isSetupComplete;
     }
 
     async getModels(): Promise<string[]> {
         try {
-            const modelRes = await fetch('https://api.anthropic.com/v1/models', {
+            const modelRes = await fetch('https://api.openai.com/v1/models', {
                 method: 'GET',
                 headers: {
-                    "x-api-key": `${this.connectionConfig.apiKey}`,
-                    "anthropic-version": "2023-06-01"
+                    Authorization: `Bearer ${this.connectionConfig.apiKey}`,
                 },
             });
             if (!modelRes.ok) throw new Error('Failed to fetch models');
             const { data } = await modelRes.json();
             return data.map((model: any) => model.id);
         } catch (error) {
-            Log.debug('Anthropic is not running', error);
+            Log.debug('OpenAI is not running', error);
             return [];
         }
     }

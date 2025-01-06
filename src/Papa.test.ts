@@ -1,6 +1,6 @@
 import { test, expect, beforeEach, jest } from '@jest/globals';
 import { Papa } from './Papa';
-import { OllamaProvider } from './Provider/Ollama';
+import { OllamaProvider } from './ProviderRegistry/Provider/Ollama';
 
 let papa: Papa;
 

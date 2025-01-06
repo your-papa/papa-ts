@@ -7,7 +7,7 @@ import llamaTokenizer from 'llama-tokenizer-js';
 
 import { Language, Prompts } from './Prompts';
 import Log from './Logging';
-import { GenModel } from './GenProvider';
+import { GenModel } from './ProviderRegistry/GenProvider';
 
 export type PipeInput = {
     isRAG: boolean;

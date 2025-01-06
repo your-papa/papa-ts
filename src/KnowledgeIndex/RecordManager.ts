@@ -1,6 +1,6 @@
 import Dexie, { Table } from 'dexie';
 
-import Log from './Logging';
+import Log from '../Logging';
 
 export interface VectorIndexRecord {
     id: string;
@@ -16,6 +16,7 @@ export class DexieRecordManager extends Dexie {
         this.version(1).stores({
             records: 'id,filepath,indexed_at',
         });
+        this.records = this.table('records');
         this.records.clear();
     }
 

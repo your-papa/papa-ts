@@ -3,21 +3,17 @@ import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { RunLogPatch } from '@langchain/core/tracers/log_stream';
-import { VectorStoreRetriever } from '@langchain/core/vectorstores';
-import { decode, encode } from '@msgpack/msgpack';
 import { applyPatch } from 'fast-json-patch';
 import { LangChainTracer } from '@langchain/core/tracers/tracer_langchain';
 
-import { IndexingMode, index, unindex } from './Indexing';
 import { getTracer } from './Langsmith';
 import { PipeInput, createConversationPipe, createRagPipe } from './PapaPipe';
 import { Language, Prompts } from './Prompts';
-import { DexieRecordManager, VectorIndexRecord } from './RecordManager';
-import { OramaStore, VectorStoreBackup } from './VectorStore';
 import Log, { LogLvl } from './Logging';
-import { ProviderConfig, ProviderRegistry, ProviderRegistryConfig, RegisteredEmbedProvider, RegisteredEmbedProviders, RegisteredGenProvider, RegisteredProvider, RegisteredProviders } from './ProviderRegistry';
-import { GenProvider } from './GenProvider';
-import { EmbedProvider } from './EmbedProvider';
+import { ProviderConfig, ProviderRegistry, ProviderRegistryConfig, RegisteredEmbedProvider, RegisteredEmbedProviders, RegisteredGenProvider, RegisteredProvider, RegisteredProviders } from './ProviderRegistry/ProviderRegistry';
+import { GenProvider } from './ProviderRegistry/GenProvider';
+import { EmbedProvider } from './ProviderRegistry/EmbedProvider';
+import { IndexingMode, KnowledgeIndex } from './KnowledgeIndex/KnowledgeIndex';
 
 export interface PapaConfig {
     providers: Partial<ProviderRegistryConfig>;
@@ -36,12 +32,10 @@ export interface PapaResponse {
 
 export class Papa {
     // TODO refactor out into a separate class (Plain Chat, RAG Chat, etc.) to make it more modular and avoid having to check if the providers are setuped in every method
-    private vectorStore?: OramaStore;
-    private retriever?: VectorStoreRetriever;
+    private knowledgeIndex?: KnowledgeIndex;
     private providerRegistry: ProviderRegistry = new ProviderRegistry();
     private embedProvider?: EmbedProvider<ProviderConfig>;
     private genProvider?: GenProvider<ProviderConfig>;
-    private recordManager?: DexieRecordManager;
     private stopRunFlag = false;
     private tracer?: LangChainTracer;
 
@@ -60,14 +54,14 @@ export class Papa {
                 if (config.selEmbedProvider) break;
                 // If a selected embedding model is part of the registered provider, create a new vector index
                 if (config.providers[provider]?.selEmbedModel && this.embedProvider === this.providerRegistry.getEmbedProvider(provider)) {
-                    await this.createVectorIndex();
+                    this.knowledgeIndex = await KnowledgeIndex.create(this.embedProvider, 20);
                     break;
                 }
                 // Update the similarity threshold for the embed models if they match the current embed provider's model
                 if (config.providers[provider]?.embedModels) {
                     for (const model in config.providers[provider].embedModels) {
-                        if (this.embedProvider?.getModel().name === model && this.vectorStore) {
-                            this.vectorStore.setSimilarityThreshold(config.providers[provider].embedModels[model].similarityThreshold);
+                        if (this.embedProvider?.getModel().name === model) {
+                            this.knowledgeIndex?.setSimilarityThreshold(config.providers[provider].embedModels[model].similarityThreshold);
                             break;
                         }
                     }
@@ -76,21 +70,12 @@ export class Papa {
         }
         if (config.selEmbedProvider) {
             this.embedProvider = this.providerRegistry.getEmbedProvider(config.selEmbedProvider);
-            await this.createVectorIndex();
+            this.knowledgeIndex = await KnowledgeIndex.create(this.embedProvider, 20);
         }
         if (config.selGenProvider) this.genProvider = this.providerRegistry.getGenProvider(config.selGenProvider);
-        if (config.numDocsToRetrieve && this.vectorStore) this.retriever = this.vectorStore.asRetriever({ k: config.numDocsToRetrieve });
+        if (config.numDocsToRetrieve) this.knowledgeIndex?.setNumOfDocsToRetrieve(config.numDocsToRetrieve);
         if (config.langsmithApiKey) this.tracer = getTracer(config.langsmithApiKey);
         if (config.logLvl) Log.setLogLevel(config.logLvl);
-    }
-
-
-    private async createVectorIndex() {
-        if (!this.embedProvider) throw new Error('Embed Provider is not setuped');
-        this.vectorStore = new OramaStore(this.embedProvider.getModel().lc, { similarityThreshold: this.embedProvider.getModel().config.similarityThreshold });
-        await this.vectorStore.create(this.embedProvider.getModel().name);
-        this.retriever = this.vectorStore.asRetriever({ k: 20 });
-        this.recordManager = new DexieRecordManager('RecordManager');
     }
 
     getProvider(providerName: RegisteredProvider) {
@@ -107,13 +92,12 @@ export class Papa {
 
     embedDocuments(documents: Document[], indexingMode: IndexingMode = 'full') {
         Log.info('Embedding documents in mode', indexingMode);
-        if (!this.recordManager || !this.vectorStore) throw new Error('Vector Store is not setuped');
-        return index(documents, this.recordManager, this.vectorStore, indexingMode, 10);
+        return this.knowledgeIndex?.embedDocuments(documents, indexingMode);
     }
 
     async deleteDocuments(basedOn: { docs?: Document[]; sources?: string[] }) {
-        if (!this.recordManager || !this.vectorStore) throw new Error('Vector Store is not setuped');
-        await unindex(basedOn, this.recordManager, this.vectorStore);
+        Log.info('Deleting documents based on', basedOn);
+        await this.knowledgeIndex?.deleteDocuments(basedOn);
     }
 
     async createTitleFromChatHistory(lang: Language, chatHistory: string) {
@@ -126,9 +110,9 @@ export class Papa {
     run(input: PipeInput) {
         Log.info('Running RAG... Input:', input);
         if (input.isRAG) {
-            if (!this.isEmbedProviderSetuped() || !this.isGenProviderSetuped() || !this.retriever || !this.genProvider)
+            if (!this.knowledgeIndex || !this.genProvider?.isSetuped())
                 throw new Error('RAG requires both Embedding and Generation providers to be setup');
-            return this.streamProcessor(createRagPipe(this.retriever, this.genProvider.getModel(), input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined))
+            return this.streamProcessor(createRagPipe(this.knowledgeIndex.getRetriever(), this.genProvider.getModel(), input).streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined))
         } else {
             if (!this.isGenProviderSetuped() || !this.genProvider)
                 throw new Error('Conversation requires a Generation provider to be setup');
@@ -174,16 +158,12 @@ export class Papa {
     }
 
     async load(vectorStoreBackup: Uint8Array) {
-        const { VectorStore, RecordManager } = decode(vectorStoreBackup) as { VectorStore: VectorStoreBackup; RecordManager: VectorIndexRecord[] };
-        if (!this.vectorStore || !this.recordManager) throw new Error('Vector Store is not setuped');
-        await Promise.all([this.vectorStore.restore(VectorStore), this.recordManager.restore(RecordManager)]);
+        if (!this.knowledgeIndex) throw new Error('Knowledge index is not setupe');
+        await this.knowledgeIndex.load(vectorStoreBackup);
     }
 
     async getData(): Promise<Uint8Array> {
-        if (!this.vectorStore || !this.recordManager) throw new Error('Vector Store is not setuped');
-        return encode({
-            VectorStore: await this.vectorStore.getData(),
-            RecordManager: await this.recordManager.getData(),
-        });
+        if (!this.knowledgeIndex) throw new Error('Knowledge index is not setuped');
+        return this.knowledgeIndex.getData();
     }
 }

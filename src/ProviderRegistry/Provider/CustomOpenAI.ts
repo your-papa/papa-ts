@@ -1,4 +1,4 @@
-import Log from '../Logging';
+import Log from '../../Logging';
 import { ProviderAPI } from '../BaseProvider';
 
 export type CustomOpenAIConfig = {

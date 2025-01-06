@@ -1,13 +1,13 @@
 import { Papa, PapaConfig, PapaResponseStatus } from './Papa';
-import { obsidianDocumentLoader, ObsidianFile } from './ObsidianDocumentLoader';
+import { obsidianDocumentLoader, ObsidianFile } from './KnowledgeIndex/ObsidianDocumentLoader';
 import { Language, Languages, Prompts } from './Prompts';
 import { LogLvl } from './Logging';
-import { ProviderAPI } from './BaseProvider';
-import { ProviderConfig, RegisteredProvider, RegisteredProviders, BaseProviderConfigs } from './ProviderRegistry';
-import { OllamaConfig, OllamaProvider } from './Provider/Ollama';
-import { OpenAIConfig, OpenAIProvider } from './Provider/OpenAI';
-import { EmbedModelConfig } from './EmbedProvider';
-import { GenModelConfig } from './GenProvider';
+import { ProviderAPI } from './ProviderRegistry/BaseProvider';
+import { ProviderConfig, RegisteredProvider, RegisteredProviders, BaseProviderConfigs } from './ProviderRegistry/ProviderRegistry';
+import { OllamaConfig, OllamaProvider } from './ProviderRegistry/Provider/Ollama';
+import { OpenAIConfig, OpenAIProvider } from './ProviderRegistry/Provider/OpenAI';
+import { EmbedModelConfig } from './ProviderRegistry/EmbedProvider';
+import { GenModelConfig } from './ProviderRegistry/GenProvider';
 
 export {
     Papa,

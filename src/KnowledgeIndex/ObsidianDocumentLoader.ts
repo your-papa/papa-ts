@@ -1,9 +1,9 @@
 import { Document } from '@langchain/core/documents';
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
-import { App, CachedMetadata, TFile } from 'obsidian';
+import { CachedMetadata } from 'obsidian';
 import crypto from 'crypto';
 
-import Log from './Logging';
+import Log from '../Logging';
 
 export function hashString(inputString: string): string {
     return crypto.createHash('sha1').update(inputString, 'utf-8').digest('hex');
