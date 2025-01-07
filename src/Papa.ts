@@ -5,8 +5,7 @@ import { createAssistant, Assistant, AssistantConfigType } from './AssistantFact
 
 export type PapaConfig<T extends Assistant> = {
     providers: Partial<ProviderRegistryConfig>;
-    assistant: T;
-    assistantConfig: AssistantConfigType<T>;
+    assistant?: { type: T; config: AssistantConfigType<T> };
     debugging?: {
         langsmithApiKey?: string;
         logLvl?: LogLvl;
@@ -15,10 +14,10 @@ export type PapaConfig<T extends Assistant> = {
 
 export class Papa {
     private providerRegistry: ProviderRegistry;
-    private assistant: BaseAssistant;
+    private assistant?: BaseAssistant;
     private langsmithApiKey?: string;
 
-    private constructor(providerRegistry: ProviderRegistry, assistant: BaseAssistant, langsmithApiKey?: string) {
+    private constructor(providerRegistry: ProviderRegistry, assistant?: BaseAssistant, langsmithApiKey?: string) {
         this.providerRegistry = providerRegistry;
         this.assistant = assistant;
         this.langsmithApiKey = langsmithApiKey;
@@ -29,7 +28,7 @@ export class Papa {
         Log.info('Initializing...');
         const providerRegistry = new ProviderRegistry();
         await providerRegistry.configure(config.providers);
-        const assistant = await createAssistant(providerRegistry, config.assistant, config.assistantConfig, config.debugging?.langsmithApiKey);
+        const assistant = config.assistant ? await createAssistant(providerRegistry, config.assistant.type, config.assistant.config, config.debugging?.langsmithApiKey) : undefined;
         return new Papa(providerRegistry, assistant);
     }
 
@@ -46,11 +45,13 @@ export class Papa {
     }
 
     run(input: PipeInput) {
+        if (!this.assistant) throw new Error('Assistant is not set.');
         Log.info('Running... Input:', input);
         return this.assistant.run(input);
     }
 
     stopRun() {
+        if (!this.assistant) throw new Error('Assistant is not set.');
         Log.info('Stopping run...');
         this.assistant.stopRun();
     }

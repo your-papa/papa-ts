@@ -4,19 +4,24 @@ import { test, expect } from '@jest/globals';
 import { Papa } from '../src';
 import { RAGAssistant } from '../src/AssistantFactory/Assistants/RAG';
 
-test('run plain assistant', async () => {
-    const papa = await Papa.init({
+let papa: Papa;
+
+beforeAll(async () => {
+    papa = await Papa.init({
         providers: {
             OpenAI: {
                 config: {
                     apiKey: process.env.OPENAIAPI_KEY ?? '',
                 },
                 genModels: { 'gpt-4o-mini': { temperature: 0.5, contextWindow: 8192 } },
+                embedModels: { 'text-embedding-3-small': { similarityThreshold: 0.5 } },
             },
         },
-        assistant: 'plain',
-        assistantConfig: { genModel: { provider: 'OpenAI', name: 'gpt-4o-mini' } },
     });
+});
+
+test('run plain assistant', async () => {
+    await papa.setAssistant('plain', { genModel: { provider: 'OpenAI', name: 'gpt-4o-mini' } });
     const responseStream = papa.run({ userQuery: 'Hello, how are you?', chatHistory: '', lang: 'en' });
     let content = '';
     for await (const response of responseStream) {
@@ -28,20 +33,10 @@ test('run plain assistant', async () => {
 }, 10000);
 
 test('run rag assistant', async () => {
-    const papa = await Papa.init({
-        providers: {
-            OpenAI: {
-                config: {
-                    apiKey: process.env.OPENAIAPI_KEY ?? '',
-                },
-                genModels: { 'gpt-4o-mini': { temperature: 0.5, contextWindow: 8192 } },
-                embedModels: { 'text-embedding-3-small': { similarityThreshold: 0.5 } },
-            },
-        },
-        assistant: 'rag',
-        assistantConfig: { genModel: { provider: 'OpenAI', name: 'gpt-4o-mini' }, embedModel: { provider: 'OpenAI', name: 'text-embedding-3-small' } },
+    await papa.setAssistant('rag', {
+        genModel: { provider: 'OpenAI', name: 'gpt-4o-mini' },
+        embedModel: { provider: 'OpenAI', name: 'text-embedding-3-small' },
     });
-
     const ragAssistant = papa.getAssistant() as RAGAssistant;
     const docs = [
         {
