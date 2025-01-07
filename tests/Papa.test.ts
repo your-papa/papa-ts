@@ -1,3 +1,5 @@
+import 'fake-indexeddb/auto'; // TODO figure out why setupFiles does not work
+
 import { test, expect } from '@jest/globals';
 import { Papa } from '../src';
 import { RAGAssistant } from '../src/AssistantFactory/Assistants/RAG';
@@ -44,10 +46,10 @@ test('run rag assistant', async () => {
     const docs = [
         {
             metadata: {
-				id: '1',
+                id: '1',
                 hash: 'asdfas',
                 filepath: 'Papa',
-                header: '# Leonard Heininger',
+                header: ['Leonard Heininger'],
                 order: 0,
                 content: 'Leonard Heininger is a developer of the papa-ts library.',
             },

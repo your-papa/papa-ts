@@ -12,4 +12,7 @@ module.exports = {
   transformIgnorePatterns: [
     '/node_modules/(?!llama-tokenizer-js)',
   ],
+  setupFiles: [
+    "fake-indexeddb/auto"
+  ]
 };
