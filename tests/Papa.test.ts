@@ -17,6 +17,7 @@ beforeAll(async () => {
                 embedModels: { 'text-embedding-3-small': { similarityThreshold: 0.5 } },
             },
         },
+        debugging: { langsmithApiKey: process.env.LANGSMITHAPI_KEY },
     });
 });
 
@@ -28,7 +29,6 @@ test('run plain assistant', async () => {
         // runState.set(response.status);
         content = response.content ?? '';
     }
-    console.log('Response content:', content);
     expect(content).not.toBe('');
 }, 10000);
 
@@ -64,6 +64,29 @@ test('run rag assistant', async () => {
     console.log('Response content:', content);
     expect(content).not.toBe('');
 }, 10000);
+
+test('run agentic assistant', async () => {
+    await papa.setAssistant('agentic', {
+        genModel: { provider: 'OpenAI', name: 'gpt-4o-mini' },
+        tavilyApiKey: process.env.TAVILYAPI_KEY ?? '',
+    });
+    let responseStream = papa.run({ userQuery: 'what is the current weather in sf', chatHistory: '', lang: 'en' });
+    let content = '';
+    for await (const response of responseStream) {
+        // runState.set(response.status);
+        content = response.content ?? '';
+    }
+    console.log('Response content:', content);
+    expect(content).not.toBe('');
+    responseStream = papa.run({ userQuery: 'what about berlin?', chatHistory: '', lang: 'en' });
+    content = '';
+    for await (const response of responseStream) {
+        // runState.set(response.status);
+        content = response.content ?? '';
+    }
+    console.log('Response content:', content);
+    expect(content).not.toBe('');
+}, 20000);
 
 // test('pull ollama model', async () => {
 //     await papa.init({

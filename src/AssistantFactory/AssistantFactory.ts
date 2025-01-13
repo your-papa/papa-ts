@@ -1,11 +1,17 @@
 import { RAGAssistant, RAGAssistantConfig } from './Assistants/RAG';
 import { GeneralAssistant, GeneralAssistantConfig } from './Assistants/General';
 import { ProviderRegistry } from '../ProviderRegistry/ProviderRegistry';
+import { AgenticAssistant, AgenticAssistantConfig } from './Assistants/Agentic';
 
-export type Assistant = 'rag' | 'plain';
+export type Assistant = 'rag' | 'plain' | 'agentic';
 
-export type AssistantConfigType<T extends Assistant> = T extends 'rag' ? RAGAssistantConfig : GeneralAssistantConfig;
-export type AssistantType<T extends Assistant> = T extends 'rag' ? RAGAssistant : GeneralAssistant;
+export type AssistantConfigType<T extends Assistant> = T extends 'rag'
+    ? RAGAssistantConfig
+    : T extends 'plain'
+    ? GeneralAssistantConfig
+    : AgenticAssistantConfig;
+
+export type AssistantType<T extends Assistant> = T extends 'rag' ? RAGAssistant : T extends 'plain' ? GeneralAssistant : AgenticAssistant;
 
 export async function createAssistant<T extends Assistant>(
     providerRegistry: ProviderRegistry,
@@ -25,10 +31,22 @@ export async function createAssistant<T extends Assistant>(
         )) as AssistantType<T>;
     } else if (type === 'plain') {
         const generalAssistantConfig = config as GeneralAssistantConfig;
-        return new GeneralAssistant({
-            ...generalAssistantConfig,
-            genModel: await providerRegistry.getGenProvider(generalAssistantConfig.genModel.provider).useModel(generalAssistantConfig.genModel.name),
-        }) as AssistantType<T>;
+        return new GeneralAssistant(
+            {
+                ...generalAssistantConfig,
+                genModel: await providerRegistry.getGenProvider(generalAssistantConfig.genModel.provider).useModel(generalAssistantConfig.genModel.name),
+            },
+            langsmithApiKey
+        ) as AssistantType<T>;
+    } else if (type === 'agentic') {
+        const agenticAssistantConfig = config as AgenticAssistantConfig;
+        return new AgenticAssistant(
+            {
+                ...agenticAssistantConfig,
+                genModel: await providerRegistry.getGenProvider(agenticAssistantConfig.genModel.provider).useModel(agenticAssistantConfig.genModel.name),
+            },
+            langsmithApiKey
+        ) as AssistantType<T>;
     } else {
         throw new Error('Unsupported assistant type');
     }

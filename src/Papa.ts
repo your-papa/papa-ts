@@ -28,8 +28,10 @@ export class Papa {
         Log.info('Initializing...');
         const providerRegistry = new ProviderRegistry();
         await providerRegistry.configure(config.providers);
-        const assistant = config.assistant ? await createAssistant(providerRegistry, config.assistant.type, config.assistant.config, config.debugging?.langsmithApiKey) : undefined;
-        return new Papa(providerRegistry, assistant);
+        const assistant = config.assistant
+            ? await createAssistant(providerRegistry, config.assistant.type, config.assistant.config, config.debugging?.langsmithApiKey)
+            : undefined;
+        return new Papa(providerRegistry, assistant, config.debugging?.langsmithApiKey);
     }
 
     getProviderRegistry() {
