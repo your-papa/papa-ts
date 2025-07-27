@@ -1,34 +1,37 @@
 import { RunnableSequence } from '@langchain/core/runnables';
-import { GenModel, GenModelFilled } from '../../ProviderRegistry/GenProvider';
+import { GenModel, GenModelConfig, GenModelFilled, GenProvider } from '../../ProviderRegistry/GenProvider';
 import { BaseAssistant, AssistantResponse, PipeInput } from '../BaseAssistant';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { Language, Prompts } from '../Prompts';
 import { applyPatch } from 'fast-json-patch';
-
-export type GeneralAssistantConfig = {
-    genModel: GenModel;
-    lang?: Language;
-};
+import { ProviderRegistry, RegisteredGenProvider } from '../../ProviderRegistry/ProviderRegistry';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
 export class GeneralAssistant extends BaseAssistant {
-    constructor(config: { genModel: GenModelFilled; lang?: Language }, langsmithApiKey?: string) {
-        super(config.genModel, langsmithApiKey);
+    constructor(providerRegistry: ProviderRegistry, config: { lang?: Language }, langsmithApiKey?: string) {
+        super(providerRegistry, langsmithApiKey);
         this.lang = config.lang ?? 'en';
     }
 
-    run(input: PipeInput): AsyncGenerator<AssistantResponse> {
+    run(input: PipeInput): [AsyncGenerator<AssistantResponse>, AbortController] {
+        const genLcInstance = this.getLCInstance(input.modelConfig);
         const pipe = RunnableSequence.from([
-            {
-                query: (input: PipeInput) => input.userQuery,
-                chatHistory: (input: PipeInput) => input.chatHistory,
-            },
+            (input: PipeInput) => ({
+                query: input.userQuery,
+                chatHistory: input.chatHistory,
+            }),
             PromptTemplate.fromTemplate(Prompts[this.lang].conversation),
-            this.genModel.lc,
+            genLcInstance,
             new StringOutputParser(),
         ]).withConfig({ runName: 'Normal Chat Pipe' });
 
-        return this.streamProcessor(pipe.streamLog(input, this.tracer ? { callbacks: [this.tracer] } : undefined));
+        const controller = new AbortController();
+        const stream = pipe.streamLog(input, {
+            signal: controller.signal,
+            ...(this.tracer ? { callbacks: [this.tracer] } : {}),
+        });
+        return [this.streamProcessor(stream), controller];
     }
 
     protected async *streamProcessor(responseStream: AsyncGenerator<any>): AsyncGenerator<AssistantResponse> {

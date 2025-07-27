@@ -5,56 +5,79 @@ import { GenModelConfig, GenProvider } from './GenProvider';
 import { EmbedModelConfig, EmbedProvider } from './EmbedProvider';
 import { AnthropicConfig, AnthropicProvider } from './Provider/Anthropic';
 import { CustomOpenAIConfig, CustomOpenAIProvider } from './Provider/CustomOpenAI';
+import { IGenProvider, IEmbedProvider, isGenProvider, isEmbedProvider } from './BaseProvider';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { Embeddings } from '@langchain/core/embeddings';
 
-export const RegisteredProviders = ['OpenAI', 'CustomOpenAI', 'Ollama', 'Anthropic'] as const;
+export const registeredProviders = ['OpenAI', 'CustomOpenAI', 'Ollama', 'Anthropic'] as const;
 export type BaseProviderConfigs = { OpenAI: OpenAIConfig; CustomOpenAI: CustomOpenAIConfig; Ollama: OllamaConfig; Anthropic: AnthropicConfig };
-export const RegisteredGenProviders = ['OpenAI', 'CustomOpenAI', 'Ollama', 'Anthropic'] as const;
-export const RegisteredEmbedProviders = ['OpenAI', 'CustomOpenAI', 'Ollama'] as const;
+export const registeredGenProviders = ['OpenAI', 'CustomOpenAI', 'Ollama', 'Anthropic'] as const;
+export const registeredEmbedProviders = ['OpenAI', 'CustomOpenAI', 'Ollama'] as const;
 
 export type ProviderConfig = BaseProviderConfigs[keyof BaseProviderConfigs];
-export type RegisteredProvider = (typeof RegisteredProviders)[number];
-export type RegisteredGenProvider = (typeof RegisteredGenProviders)[number];
-export type RegisteredEmbedProvider = (typeof RegisteredEmbedProviders)[number];
+export type RegisteredProvider = (typeof registeredProviders)[number];
+export type RegisteredGenProvider = (typeof registeredGenProviders)[number];
+export type RegisteredEmbedProvider = (typeof registeredEmbedProviders)[number];
+
+export type Providers = OllamaProvider | OpenAIProvider | CustomOpenAIProvider | AnthropicProvider;
+// Type constraints to ensure providers implement the correct interfaces
+type GenProviderMap = {
+    [K in RegisteredGenProvider]: ProviderAPI<BaseProviderConfigs[K]> & IGenProvider<BaseProviderConfigs[K], BaseChatModel>;
+};
+
+type EmbedProviderMap = {
+    [K in RegisteredEmbedProvider]: ProviderAPI<BaseProviderConfigs[K]> & IEmbedProvider<BaseProviderConfigs[K], Embeddings>;
+};
+
+type ProviderAuthMap = {
+    OpenAI: OpenAIConfig;
+    Ollama: OllamaConfig;
+    Anthropic: AnthropicConfig;
+    CustomOpenAI: CustomOpenAIConfig;
+};
 
 export type ProviderRegistryConfig = {
-    [provider in RegisteredProvider]: Partial<{
+    [provider in RegisteredProvider]: {
         config: BaseProviderConfigs[provider];
-        embedModels: Record<string, EmbedModelConfig>;
-        genModels: Record<string, GenModelConfig>;
-    }>;
+    };
 };
 
 export class ProviderRegistry {
-    private baseProviders: { [provider in RegisteredProvider]: ProviderAPI<ProviderConfig> } = {} as any;
-    private genProviders: { [provider in RegisteredGenProvider]: GenProvider<ProviderConfig> } = {} as any;
-    private embedProviders: { [provider in RegisteredEmbedProvider]: EmbedProvider<ProviderConfig> } = {} as any;
+    #baseProviders: { [provider in RegisteredProvider]: ProviderAPI<ProviderConfig> } = {} as any;
 
+    createProvider = (provider: RegisteredProvider): ProviderAPI<ProviderConfig> => {
+        switch (provider) {
+            case 'OpenAI':
+                return new OpenAIProvider();
+            case 'CustomOpenAI':
+                return new CustomOpenAIProvider();
+            case 'Ollama':
+                return new OllamaProvider();
+            case 'Anthropic':
+                return new AnthropicProvider();
+            default:
+                // This will cause a TypeScript error if any RegisteredProvider case is missing
+                const _exhaustiveCheck: never = provider;
+                throw new Error(`Unknown provider: ${provider}`);
+        }
+    };
     constructor() {
-        this.baseProviders['OpenAI'] = new OpenAIProvider();
-        this.baseProviders['CustomOpenAI'] = new CustomOpenAIProvider();
-        this.baseProviders['Ollama'] = new OllamaProvider();
-        this.baseProviders['Anthropic'] = new AnthropicProvider();
-        for (const provider of RegisteredEmbedProviders) this.embedProviders[provider] = new EmbedProvider(this.baseProviders[provider]);
-        for (const provider of RegisteredGenProviders) this.genProviders[provider] = new GenProvider(this.baseProviders[provider]);
-    }
-
-    async configure(config: Partial<ProviderRegistryConfig>) {
-        for (const provider of RegisteredProviders) if (config[provider]?.config) await this.baseProviders[provider].setup(config[provider].config);
-        for (const provider of RegisteredEmbedProviders)
-            if (config[provider]?.embedModels) await this.embedProviders[provider].registerModels(config[provider].embedModels);
-        for (const provider of RegisteredGenProviders)
-            if (config[provider]?.genModels) await this.genProviders[provider].registerModels(config[provider].genModels);
+        for (const provider of registeredProviders) {
+            this.#baseProviders[provider] = this.createProvider(provider);
+        }
     }
 
     getProvider(providerName: RegisteredProvider): ProviderAPI<ProviderConfig> {
-        return this.baseProviders[providerName];
+        return this.#baseProviders[providerName];
     }
 
-    getGenProvider(providerName: RegisteredGenProvider): GenProvider<ProviderConfig> {
-        return this.genProviders[providerName];
+    getGenProvider<T extends RegisteredGenProvider>(providerName: T): GenProviderMap[T] {
+        // Type system guarantees this provider implements IGenProvider
+        return this.#baseProviders[providerName] as GenProviderMap[T];
     }
 
-    getEmbedProvider(providerName: RegisteredEmbedProvider): EmbedProvider<ProviderConfig> {
-        return this.embedProviders[providerName];
+    getEmbedProvider<T extends RegisteredEmbedProvider>(providerName: T): EmbedProviderMap[T] {
+        // Type system guarantees this provider implements IEmbedProvider
+        return this.#baseProviders[providerName] as EmbedProviderMap[T];
     }
 }

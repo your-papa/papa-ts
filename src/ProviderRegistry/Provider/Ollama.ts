@@ -1,12 +1,23 @@
-import { ProviderAPI } from '../BaseProvider';
+import { IEmbedProvider, IGenProvider, ProviderAPI } from '../BaseProvider';
 import Log from '../../Logging';
+import { OllamaEmbeddings } from '@langchain/ollama';
+import { ChatOllama } from '@langchain/ollama';
+import { BaseChatModel, BaseChatModelCallOptions } from '@langchain/core/language_models/chat_models';
+import { Embeddings } from '@langchain/core/embeddings';
+import { GenModelConfig } from '../GenProvider';
 
 export type OllamaConfig = {
     baseUrl: string;
 };
-export class OllamaProvider extends ProviderAPI<OllamaConfig> {
+
+export class OllamaProvider
+    extends ProviderAPI<OllamaConfig>
+    implements IGenProvider<OllamaConfig, ChatOllama>, IEmbedProvider<OllamaConfig, OllamaEmbeddings>
+{
     readonly isLocal = true;
     readonly name = 'Ollama';
+    #genLCInstance: ChatOllama | null = null;
+    #embedLCInstance!: OllamaEmbeddings;
 
     async setup(config: OllamaConfig): Promise<boolean> {
         this.connectionConfig = config;
@@ -15,6 +26,9 @@ export class OllamaProvider extends ProviderAPI<OllamaConfig> {
             const response = await fetch(this.connectionConfig.baseUrl + '/api/tags');
             if (response.status === 200) {
                 this.isSetupComplete = true;
+                // Configure LC instances with new config
+                this.configureGenInstance(this.connectionConfig);
+                this.configureEmbedInstance(this.connectionConfig);
             } else {
                 Log.error(`Unexpected status code: ${response.status}`);
                 // errorState.set('ollama-not-running');
@@ -28,24 +42,67 @@ export class OllamaProvider extends ProviderAPI<OllamaConfig> {
         return this.isSetupComplete;
     }
 
-    setConnectionConfig(connectionArgs: OllamaConfig): { connectionArgs: OllamaConfig } {
-        let baseUrl = connectionArgs.baseUrl;
-        baseUrl.trim();
-        if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-        this.connectionConfig.baseUrl = baseUrl;
-        return { connectionArgs: this.connectionConfig };
-        // papaState.set('settings-change');
-    }
-
     async getModels(): Promise<string[]> {
         try {
             const modelsRes = await fetch(this.connectionConfig.baseUrl + '/api/tags');
-            const modelsData = await modelsRes.json();
+            const data = await modelsRes.json();
+            const modelsData = data.models;
             const models: string[] = modelsData.map((model: { name: string }) => model.name);
             return models.map((model: string) => model.replace(':latest', ''));
         } catch (error) {
             Log.error('Ollama is not running', error);
             return [];
+        }
+    }
+
+    configureGenInstance(config: OllamaConfig): void {
+        if (!this.#genLCInstance) {
+            this.#genLCInstance = new ChatOllama({ ...config });
+            return;
+        }
+        Object.assign(this.#genLCInstance, config);
+    }
+
+    configureEmbedInstance(config: OllamaConfig): void {
+        if (!this.#embedLCInstance) {
+            this.#embedLCInstance = new OllamaEmbeddings({ ...config });
+            return;
+        }
+        Object.assign(this.#embedLCInstance, config);
+    }
+
+    getGenLCInstance(modelName: string, genModelConfig: GenModelConfig): ChatOllama {
+        if (!this.#genLCInstance) {
+            throw new Error('Provider not set up. Call setup() first.');
+        }
+
+        try {
+            // Only update if model changed
+            if (this.#genLCInstance.model !== modelName) {
+                this.#genLCInstance.model = modelName;
+                this.#genLCInstance.temperature = genModelConfig.temperature;
+            }
+            return this.#genLCInstance;
+        } catch (error) {
+            Log.error(`Error setting model ${modelName} for Ollama gen instance:`, error);
+            throw new Error(`Model ${modelName} not available or invalid`);
+        }
+    }
+
+    getEmbedLCInstance(modelName: string): OllamaEmbeddings {
+        if (!this.#embedLCInstance) {
+            throw new Error('Provider not set up. Call setup() first.');
+        }
+
+        try {
+            // Only update if model changed
+            if (this.#embedLCInstance.model !== modelName) {
+                this.#embedLCInstance.model = modelName;
+            }
+            return this.#embedLCInstance;
+        } catch (error) {
+            Log.error(`Error setting model ${modelName} for Ollama embed instance:`, error);
+            throw new Error(`Model ${modelName} not available or invalid`);
         }
     }
 

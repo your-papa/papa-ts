@@ -1,10 +1,12 @@
 import { LangChainTracer } from '@langchain/core/tracers/tracer_langchain';
 import { Language, Prompts } from './Prompts';
-import { GenModel, GenModelFilled } from '../ProviderRegistry/GenProvider';
+import { GenModel, GenModelConfig, GenModelFilled } from '../ProviderRegistry/GenProvider';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { getTracer } from './Langsmith';
+import { ProviderRegistry, RegisteredGenProvider } from '../ProviderRegistry/ProviderRegistry';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
 export type AssistantResponseStatus = 'startup' | 'retrieving' | 'reducing' | 'generating' | 'stopped';
 export interface AssistantResponse {
@@ -13,29 +15,37 @@ export interface AssistantResponse {
 }
 
 export type PipeInput = {
+    modelConfig: {
+        provider: RegisteredGenProvider;
+        model: string;
+        modelConfig: GenModelConfig;
+    };
     userQuery: string;
     chatHistory: string;
     lang: Language;
 };
 
 export abstract class BaseAssistant {
-    protected genModel: GenModelFilled;
+    protected providerRegistry: ProviderRegistry;
     protected lang: Language = 'en';
     protected stopRunFlag = false;
     protected tracer?: LangChainTracer;
 
-    constructor(genModel: GenModelFilled, langsmithApiKey?: string) {
-        this.genModel = genModel;
+    constructor(providerRegistry: ProviderRegistry, langsmithApiKey?: string) {
+        this.providerRegistry = providerRegistry;
         if (langsmithApiKey) this.tracer = getTracer(langsmithApiKey);
     }
 
-    abstract run(input: PipeInput): AsyncGenerator<AssistantResponse>;
-    stopRun() {
-        this.stopRunFlag = true;
+    getLCInstance({ provider, model, modelConfig }: PipeInput['modelConfig']): BaseChatModel {
+        return this.providerRegistry.getGenProvider(provider).getGenLCInstance(model, modelConfig);
     }
 
-    async createTitleFromChatHistory(lang: Language, chatHistory: string) {
-        return RunnableSequence.from([PromptTemplate.fromTemplate(Prompts[lang].createTitle), this.genModel.lc, new StringOutputParser()]).invoke({
+    async createTitleFromChatHistory(lang: Language, chatHistory: string, input: PipeInput) {
+        return RunnableSequence.from([
+            PromptTemplate.fromTemplate(Prompts[lang].createTitle),
+            this.getLCInstance(input.modelConfig),
+            new StringOutputParser(),
+        ]).invoke({
             chatHistory,
         });
     }
