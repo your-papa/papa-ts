@@ -3,7 +3,7 @@ export const Prompts = {
         initialAssistantMessage: `Hallo, ich bin dein Assistent. Wie kann ich dir helfen?`,
         createTitle: `Erstelle einen sehr kurzen Titel als Zussamenfassung über die folgende Konversation (durch XML-Tags begrenzt), sodass er direkt als Dateinamen verwendet werden kann. Der Title darf also ausschließlich nur aus Buchstaben und Leerzeichen bestehen.
 <conversation>
-{chatHistory}
+{firstMessage}
 </conversation>
 Titel:`,
         initialReduce: `Fasse meine Notes (durch XML-Tags begrenzt) zusammen, sodass die Frage "{query}" im nachhinein noch ausführlich beantwortet werden könnte.
@@ -21,7 +21,7 @@ Achte darauf, die markdown und wikilink formatierung in den Notes beizubehalten.
 </notes>
 Zusammenfassung:`,
         rag: `Als mein Assistent, bitte antworte basierend auf meiner Frage und der chathistory, wobei du ausschließlich auf mein vorhandenes Wissen (durch XML-Tags begrenzt) aus Obsidian zurückgreifst.
-Achte darauf, die Markdown-Formatierung zu verwenden und deiner Antwort, die im Wissen hinterlegten Wikilinks (wikilink format: [[<Note Path>]]) als Referenz hinzu zufügen. 
+Achte darauf, die Markdown-Formatierung zu verwenden und deiner Antwort, die im Wissen hinterlegten Wikilinks (wikilink format: [[<Note Path>]]) als Referenz hinzu zufügen.
 <knowledge>
 {context}
 </knowledge>
@@ -45,7 +45,7 @@ Antwort:`,
         initialAssistantMessage: `Hello, I am your assistant. How can I help you?`,
         createTitle: `Create a very short title as a summary of the following conversation (enclosed by XML tags), so that it can be used directly as a filename. The title may only consist of letters and spaces.
 <conversation>
-{chatHistory}
+{firstMessage}
 </conversation>
 Title:`,
         initialReduce: `Summarize my notes (enclosed by XML tags) so that the question "{query}" could still be answered in detail afterwards.
@@ -83,11 +83,11 @@ Response:`,
 </query>
 Response:`,
     },
-    'fr': {
+    fr: {
         initialAssistantMessage: `Bonjour, je suis votre assistant. Comment puis-je vous aider?`,
         createTitle: `Créez un titre très court comme résumé de la conversation suivante (encadrée par des balises XML), de sorte qu'il puisse être utilisé directement comme nom de fichier. Le titre ne peut contenir que des lettres et des espaces.
 <conversation>
-{chatHistory}
+{firstMessage}
 </conversation>
 Titre:`,
         initialReduce: `Résumez mes notes (encadrées par des balises XML) de manière à ce que la question "{query}" puisse encore être répondue en détail par la suite.
@@ -124,43 +124,43 @@ Réponse:`,
 </query>
 Réponse:`,
     },
-    zh:{
+    zh: {
         initialAssistantMessage: `你好，我是你的助手。我能帮你什么？`,
         createTitle: `创建一个非常简短的标题，作为以下对话的总结（用XML标签括起来），以便可以直接用作文件名。标题只能由字母和空格组成。
-        <conversation> 
-        {chatHistory}
-         </conversation> 
+        <conversation>
+        {firstMessage}
+         </conversation>
          标题：`,
         initialReduce: `总结我的笔记（用XML标签括起来），以便问题 "{query}" 之后仍然可以详细回答。仅总结那些能有助于回答问题的笔记，跳过其他内容而不再提及。确保包含维基链接（格式：[[<Note Path><# Header1><## Header2>...]])作为每个总结笔记的参考。
-        <notes> 
-        {content} 
-        </notes> 
+        <notes>
+        {content}
+        </notes>
         总结：`,
         reduce: `总结我的笔记（用XML标签括起来），以便问题 "{query}" 之后仍然可以详细回答。确保保留笔记的Markdown和维基链接格式（格式：[[<Note>]]）。
-        <notes> 
-        {content} 
-        </notes> 
+        <notes>
+        {content}
+        </notes>
         总结：`,
         rag: `作为我的助手，请根据我在Obsidian中的现有知识（用XML标签括起来）回答我的问题。确保使用Markdown格式，并添加维基链接（格式：[[<Note>]]）作为你回答的参考。
-        <knowledge> 
-        {context} 
-        </knowledge> 
-        <chathistory> 
-        {chatHistory} 
-        </chathistory> 
-        <query> 
-        {query} 
-        </query> 
+        <knowledge>
+        {context}
+        </knowledge>
+        <chathistory>
+        {chatHistory}
+        </chathistory>
+        <query>
+        {query}
+        </query>
         回应：`,
         conversation: `作为我的助手，根据聊天记录回应我的问题。
-        <chathistory> 
-        {chatHistory} 
-        </chathistory> 
-        <query> 
-        {query} 
-        </query> 
-        回答：`
-      }
+        <chathistory>
+        {chatHistory}
+        </chathistory>
+        <query>
+        {query}
+        </query>
+        回答：`,
+    },
 };
 
 export type Language = keyof typeof Prompts;

@@ -22,6 +22,11 @@ export class Papa {
         this.langsmithApiKey = config.debugging.langsmithApiKey;
     }
 
+    generateTitle(input: PipeInput) {
+        const assistant = new GeneralAssistant(this.providerRegistry, { lang: 'en' }, this.langsmithApiKey);
+        return assistant.generateTitleFromInitialMessage(input);
+    }
+
     run(input: PipeInput) {
         Log.info('Running... Input:', input);
         const assistant = new GeneralAssistant(this.providerRegistry, { lang: 'en' }, this.langsmithApiKey);

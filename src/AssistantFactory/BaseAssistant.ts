@@ -40,13 +40,14 @@ export abstract class BaseAssistant {
         return this.providerRegistry.getGenProvider(provider).getGenLCInstance(model, modelConfig);
     }
 
-    async createTitleFromChatHistory(lang: Language, chatHistory: string, input: PipeInput) {
+    async generateTitleFromInitialMessage(input: PipeInput) {
+        const firstMessage = input.userQuery;
         return RunnableSequence.from([
-            PromptTemplate.fromTemplate(Prompts[lang].createTitle),
+            PromptTemplate.fromTemplate(Prompts[this.lang].createTitle),
             this.getLCInstance(input.modelConfig),
             new StringOutputParser(),
         ]).invoke({
-            chatHistory,
+            firstMessage,
         });
     }
 }
