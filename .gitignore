@@ -1,6 +1,5 @@
-/node_modules
-/dist
-.env
-.env.test
-/src/test.ts
+.langgraph_api
+node_modules
+.agent-threads
 .DS_Store
+.env

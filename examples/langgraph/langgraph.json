@@ -1,0 +1,8 @@
+{
+  "graphs": {
+    "privacy-agent": "./graph.ts:makeGraph"
+  },
+  "env": "./.env"
+}
+
+

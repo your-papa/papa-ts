@@ -1,67 +1,63 @@
 {
-    "name": "papa-ts",
-    "version": "0.5.6",
-    "description": "Backend for your Personal Assistant, powered by Private AI (aka PAPA)",
-    "main": "dist/index",
-    "types": "dist/index",
-    "type": "module",
-    "files": [
-        "dist"
-    ],
-    "scripts": {
-        "build": "tsup",
-        "build:watch": "tsup --watch",
-        "test": "DOTENV_CONFIG_PATH=.env.test jest --setupFiles=dotenv/config"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+ssh://git@github.com/your-papa/papa-ts.git"
-    },
-    "keywords": [
-        "ai",
-        "second-brain",
-        "papa",
-        "rag",
-        "obsidian"
-    ],
-    "author": "Leonard Heininger, Nicolas Kohl",
-    "license": "ISC",
-    "bugs": {
-        "url": "https://github.com/your-papa/papa-ts/issues"
-    },
-    "homepage": "https://github.com/your-papa/papa-ts#readme",
-    "devDependencies": {
-        "@babel/core": "^7.26.0",
-        "@babel/preset-env": "^7.26.0",
-        "@babel/preset-typescript": "^7.26.0",
-        "@types/jest": "^29.5.14",
-        "@types/node": "^22.8.7",
-        "babel-jest": "^29.7.0",
-        "fake-indexeddb": "^6.0.0",
-        "jest": "^29.7.0",
-        "obsidian": "^1.7.2",
-        "ts-jest": "^29.2.5",
-        "ts-node": "^10.9.1",
-        "tsup": "^8.2.0",
-        "typescript": "^5.2.2"
-    },
-    "dependencies": {
-        "@codemirror/state": "^6.0.0",
-        "@codemirror/view": "^6.0.0",
-        "@langchain/anthropic": "^0.3.11",
-        "@langchain/community": "^0.3.24",
-        "@langchain/core": "^0.3.29",
-        "@langchain/langgraph": "^0.2.39",
-        "@langchain/ollama": "^0.1.4",
-        "@langchain/openai": "^0.3.17",
-        "@msgpack/msgpack": "^3.0.0-beta2",
-        "@orama/orama": "^3.0.1",
-        "@orama/plugin-data-persistence": "^3.0.1",
-        "dexie": "^4.0.0",
-        "dotenv": "^16.3.1",
-        "fast-json-patch": "^3.1.1",
-        "graphql": "^16.8.1",
-        "langchain": "^0.3.0",
-        "llama-tokenizer-js": "^1.2.2"
-    }
+  "name": "papa-ts",
+  "version": "2.0.0",
+  "description": "Backend for your Personal Assistant, powered by Private AI (aka PAPA)",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap",
+    "clean": "rm -rf dist",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "prepublishOnly": "yarn build",
+    "test": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/your-papa/papa-ts.git"
+  },
+  "keywords": [
+    "agent",
+    "langchain",
+    "langgraph",
+    "privacy",
+    "electron",
+    "browser",
+    "ai",
+    "second-brain"
+  ],
+  "author": "Leonard Heininger, Nicolas Kohl",
+  "dependencies": {
+    "@langchain/anthropic": "^1.1.0",
+    "@langchain/core": "^1.0.2",
+    "@langchain/langgraph": "^1.0.1",
+    "@langchain/ollama": "^1.0.1",
+    "@langchain/openai": "^1.1.2",
+    "@langfuse/langchain": "^4.4.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@sap-ai-sdk/langchain": "^2.2.0",
+    "dotenv": "^17.2.3",
+    "langchain": "^1.0.2",
+    "langfuse": "^3.38.6",
+    "langsmith": "^0.3.79",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.3",
+    "@typescript-eslint/parser": "^8.46.3",
+    "eslint": "^9.39.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
 }
