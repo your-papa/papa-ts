@@ -1,5 +1,7 @@
 import { CallbackHandler } from '@langfuse/langchain';
 import type { Callbacks } from '@langchain/core/callbacks/manager';
+import { NodeSDK } from "@opentelemetry/sdk-node";
+import { LangfuseSpanProcessor } from "@langfuse/otel";
 
 import type { Telemetry } from './Telemetry';
 
@@ -17,14 +19,44 @@ export interface LangfuseTelemetryOptions {
     traceMetadata?: Record<string, unknown>;
     /** When true, call `flush` on the handler after each run (useful in short-lived scripts). */
     flushOnComplete?: boolean;
+    /** Langfuse public key. */
+    publicKey: string;
+    /** Langfuse secret key. */
+    secretKey: string;
+    /** Langfuse base URL. */
+    baseUrl: string;
+    /** Optional environment tag for traces. Defaults to "node-tools-demo". */
+    environment?: string;
 }
 
 export class LangfuseTelemetry implements Telemetry {
     private readonly handler: CallbackHandler;
     private readonly flushOnComplete: boolean;
 
-    constructor(options?: LangfuseTelemetryOptions) {
-        const { flushOnComplete = false, ...handlerOptions } = options ?? {};
+    constructor(options: LangfuseTelemetryOptions) {
+        const {
+            flushOnComplete = false,
+            publicKey,
+            secretKey,
+            baseUrl,
+            environment,
+            ...handlerOptions
+        } = options;
+
+        if (!publicKey || !secretKey || !baseUrl) {
+            throw new Error('LangfuseTelemetry requires publicKey, secretKey, and baseUrl.');
+        }
+
+        const sdk = new NodeSDK({
+            spanProcessors: [new LangfuseSpanProcessor({
+                publicKey,
+                secretKey,
+                baseUrl,
+                environment,
+            })],
+        });
+
+        sdk.start();
         this.handler = new CallbackHandler(handlerOptions);
         this.flushOnComplete = flushOnComplete;
     }

@@ -20,6 +20,7 @@ import {
     LangfuseTelemetry,
 } from '../../src';
 
+
 dotenv.config({ path: './examples/node/.env', override: true })
 
 const WEB_SEARCH_ENDPOINT =
@@ -88,7 +89,8 @@ const fetchUrlTool = tool(
 );
 
 async function main(): Promise<void> {
-    const registry = new ProviderRegistry().useSapAICore();
+
+    const registry = new ProviderRegistry().useOpenAI();
 
     let telemetry =
         process.env.LANGSMITH_API_KEY && process.env.LANGSMITH_PROJECT
@@ -97,7 +99,12 @@ async function main(): Promise<void> {
                 flushOnComplete: true,
             })
             : process.env.LANGFUSE_PUBLIC_KEY
-                ? new LangfuseTelemetry({ sessionId: 'node-tools-demo', flushOnComplete: true })
+                ? new LangfuseTelemetry({
+                    publicKey: process.env.LANGFUSE_PUBLIC_KEY ?? '',
+                    secretKey: process.env.LANGFUSE_SECRET_KEY ?? '',
+                    baseUrl: process.env.LANGFUSE_BASE_URL ?? '',
+                    flushOnComplete: true,
+                })
                 : undefined;
 
     const agent = new Agent({
@@ -109,8 +116,8 @@ async function main(): Promise<void> {
     });
 
     await agent.chooseModel({
-        provider: 'sap-ai-core',
-        chatModel: 'gpt-5',
+        provider: 'openai',
+        chatModel: 'gpt-4.1',
     });
 
     agent.setPrompt(
