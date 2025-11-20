@@ -1,0 +1,37 @@
+## Changelog
+
+All notable changes to `papa-ts` will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [2.0.0] - 2025-11-20
+
+### Breaking Changes
+
+- **Complete architecture rewrite**: The assistant backend has been rewritten from scratch to support the new v2 architecture.
+- **Provider management**: Provider setup and configuration flow has changed; existing integrations will likely need configuration updates.
+
+### Added
+
+- **Agentic assistant**: New `Agent` abstraction and agentic assistant implementation.
+- **Improved provider registry**: Centralized `ProviderRegistry` for managing OpenAI, Anthropic, Ollama, SAP AI Core and other providers.
+- **Telemetry integrations**: LangSmith and Langfuse telemetry helpers for tracing and observability.
+- **Better configuration handling**: Enhanced model and provider configuration types, including support for new API keys and environment variables.
+
+### Changed
+
+- **Project structure**: Source code reorganized under `src/agent`, `src/providers`, `src/memory`, and `src/telemetry`.
+- **Build output**: Library is now built via `tsup` targeting both ESM and CJS with bundled type definitions.
+- **Testing setup**: Tests migrated to `vitest` with improved test utilities.
+
+### Fixed
+
+- **Environment handling**: More robust handling of environment variables for provider API keys.
+
+---
+
+## [0.5.x] - 2024-xx-xx
+
+Pre-v2 series with the original architecture and provider implementations.
+
+
