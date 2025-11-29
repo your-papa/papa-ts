@@ -17,7 +17,15 @@ export {
 // in downstream projects.
 export { tool } from '@langchain/core/tools';
 
-export { Agent, type AgentRunOptions, type AgentResult, type AgentOptions, type ChooseModelParams } from './agent/Agent';
+export {
+    Agent,
+    type AgentRunOptions,
+    type AgentResult,
+    type AgentOptions,
+    type AgentStreamOptions,
+    type AgentStreamChunk,
+    type ChooseModelParams,
+} from './agent/Agent';
 export { buildAgent, type BuildAgentParams } from './agent/build';
 
 export {

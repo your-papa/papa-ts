@@ -1,6 +1,7 @@
 import { createAgent } from 'langchain';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { RunnableConfig } from '@langchain/core/runnables';
+import type { StreamEvent } from '@langchain/core/tracers/log_stream';
 import type { BaseCheckpointSaver, CheckpointTuple } from '@langchain/langgraph';
 import { MemorySaver } from '@langchain/langgraph';
 
@@ -25,6 +26,7 @@ export interface AgentRunOptions {
     threadId?: string;
     metadata?: Record<string, unknown>;
     configurable?: Record<string, unknown>;
+    signal?: AbortSignal;
 }
 
 export interface AgentResult {
@@ -45,6 +47,35 @@ export interface AgentOptions {
 }
 
 type AgentRunnable = ReturnType<typeof createAgent>; // invoke(), stream(), etc.
+
+export interface AgentStreamOptions extends AgentRunOptions {
+    /**
+     * When true, every raw LangChain `StreamEvent` is emitted alongside token updates.
+     * Defaults to `false` to avoid shipping extra payload unless explicitly requested.
+     */
+    includeEvents?: boolean;
+}
+
+export type AgentStreamChunk =
+    | {
+        type: 'token';
+        token: string;
+        event: StreamEvent;
+        runId: string;
+        threadId: string;
+    }
+    | {
+        type: 'event';
+        event: StreamEvent;
+        runId: string;
+        threadId: string;
+    }
+    | {
+        type: 'result';
+        result: AgentResult;
+        runId: string;
+        threadId: string;
+    };
 
 interface SelectedModel {
     provider: string;
@@ -126,16 +157,7 @@ export class Agent {
             queryPreview: query.slice(0, 200),
         });
 
-        const callbacks = this.telemetry?.getCallbacks?.();
-
-        const invokeConfig: RunnableConfig = {
-            configurable: {
-                thread_id: threadId,
-                ...(options.configurable ?? {}),
-            },
-            metadata: options.metadata,
-            callbacks: callbacks ?? undefined,
-        } as RunnableConfig;
+        const invokeConfig = this.buildRunnableConfig(options, threadId);
 
         const rawResult = await agent.invoke(
             {
@@ -180,6 +202,124 @@ export class Agent {
         return result;
     }
 
+    async *streamTokens(options: AgentStreamOptions): AsyncGenerator<AgentStreamChunk> {
+        const { query, includeEvents = false } = options;
+        if (!this.selectedModel) {
+            throw new Error('No model selected. Call chooseModel() before streamTokens().');
+        }
+
+        if (!query || query.trim().length === 0) {
+            throw new Error('Query must be a non-empty string.');
+        }
+
+        const agent = await this.ensureAgent();
+        const runId = this.generateId();
+        const threadId = options.threadId ?? runId;
+        const startedAt = new Date();
+        debugLog('agent.streamTokens.start', {
+            runId,
+            threadId,
+            provider: this.selectedModel.provider,
+            model: this.selectedModel.name,
+            queryPreview: query.slice(0, 200),
+            includeEvents,
+        });
+
+        type StreamEventsConfig = Parameters<AgentRunnable['streamEvents']>[1];
+        const streamConfig = this.buildRunnableConfig(options, threadId) as StreamEventsConfig;
+
+        const stream = agent.streamEvents(
+            {
+                messages: [
+                    {
+                        role: 'user',
+                        content: query,
+                    },
+                ],
+            },
+            streamConfig,
+        );
+
+        let rawResult: unknown;
+        try {
+            for await (const event of stream) {
+                if (includeEvents) {
+                    yield {
+                        type: 'event',
+                        event,
+                        runId,
+                        threadId,
+                    };
+                }
+
+                const token = this.extractTokenFromEvent(event);
+                if (token) {
+                    yield {
+                        type: 'token',
+                        token,
+                        event,
+                        runId,
+                        threadId,
+                    };
+                }
+
+                const output = this.extractOutputFromEvent(event);
+                if (output) {
+                    rawResult = output;
+                }
+            }
+        } catch (error) {
+            debugLog('agent.streamTokens.error', {
+                runId,
+                message: error instanceof Error ? error.message : String(error),
+            });
+            throw error;
+        }
+
+        if (!rawResult) {
+            throw new Error('Agent streaming completed without producing a final output.');
+        }
+
+        const finishedAt = new Date();
+        const messages = this.extractMessagesFromResult(rawResult);
+        if (this.threadStore) {
+            await this.threadStore.write(
+                createSnapshot({
+                    threadId,
+                    messages,
+                    metadata: {
+                        lastRunId: runId,
+                        model: this.selectedModel.name,
+                    },
+                }),
+            );
+            debugLog('agent.threadStore.write', { threadId, lastRunId: runId, messageCount: messages.length });
+        }
+
+        const result: AgentResult = {
+            runId,
+            threadId,
+            durationMs: finishedAt.getTime() - startedAt.getTime(),
+            messages,
+            response: this.extractResponse(messages),
+            raw: rawResult,
+        };
+
+        await this.telemetry?.onRunComplete?.(result);
+        debugLog('agent.streamTokens.complete', {
+            runId,
+            durationMs: result.durationMs,
+            responsePreview: typeof result.response === 'string' ? (result.response as string).slice(0, 200) : undefined,
+        });
+
+        yield {
+            type: 'result',
+            result,
+            runId,
+            threadId,
+        };
+    }
+
     async getThreadHistory(threadId: string): Promise<ThreadSnapshot | undefined> {
         if (this.threadStore) {
             return this.threadStore.read(threadId);
@@ -195,6 +335,19 @@ export class Agent {
         }
 
         return undefined;
+    }
+
+    private buildRunnableConfig(options: AgentRunOptions, threadId: string): RunnableConfig {
+        const callbacks = this.telemetry?.getCallbacks?.();
+        return {
+            configurable: {
+                thread_id: threadId,
+                ...(options.configurable ?? {}),
+            },
+            metadata: options.metadata,
+            callbacks: callbacks ?? undefined,
+            signal: options.signal,
+        } as RunnableConfig;
     }
 
 
@@ -263,6 +416,86 @@ export class Agent {
                 content: message,
             } satisfies ThreadMessage;
         });
+    }
+
+    private extractOutputFromEvent(event: StreamEvent): unknown | undefined {
+        const output = event?.data?.output;
+        if (this.isAgentOutputCandidate(output)) {
+            return output;
+        }
+        return undefined;
+    }
+
+    private extractTokenFromEvent(event: StreamEvent): string | undefined {
+        if (!event.event.endsWith('_stream')) {
+            return undefined;
+        }
+        const chunk = event.data?.chunk;
+        if (typeof chunk === 'undefined' || chunk === null) {
+            return undefined;
+        }
+        const token = this.normalizeContentToString(chunk);
+        return token && token.length > 0 ? token : undefined;
+    }
+
+    private normalizeContentToString(value: unknown): string | undefined {
+        if (typeof value === 'string') {
+            return value;
+        }
+        if (Array.isArray(value)) {
+            const combined = value
+                .map((entry) => {
+                    if (typeof entry === 'string') {
+                        return entry;
+                    }
+                    if (entry && typeof entry === 'object') {
+                        if (typeof (entry as { text?: unknown }).text === 'string') {
+                            return (entry as { text: string }).text;
+                        }
+                        if (typeof (entry as { content?: unknown }).content === 'string') {
+                            return (entry as { content: string }).content;
+                        }
+                    }
+                    return '';
+                })
+                .join('');
+            return combined.length > 0 ? combined : undefined;
+        }
+        if (value && typeof value === 'object') {
+            const textField = (value as { text?: unknown }).text;
+            if (typeof textField === 'string') {
+                return textField;
+            }
+            const contentField = (value as { content?: unknown }).content;
+            const contentText = this.normalizeContentToString(contentField);
+            if (contentText) {
+                return contentText;
+            }
+            const messageField = (value as { message?: { content?: unknown } }).message;
+            if (messageField) {
+                const messageText = this.normalizeContentToString(messageField.content);
+                if (messageText) {
+                    return messageText;
+                }
+            }
+            const deltaField = (value as { delta?: unknown }).delta;
+            if (deltaField) {
+                const deltaText = this.normalizeContentToString(deltaField);
+                if (deltaText) {
+                    return deltaText;
+                }
+            }
+        }
+        return undefined;
+    }
+
+    private isAgentOutputCandidate(value: unknown): value is { messages: unknown[] } {
+        return Boolean(
+            value &&
+            typeof value === 'object' &&
+            'messages' in (value as Record<string, unknown>) &&
+            Array.isArray((value as { messages?: unknown }).messages),
+        );
     }
 
     private extractResponse(messages: ThreadMessage[]): unknown {

@@ -4,9 +4,18 @@ All notable changes to `papa-ts` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-11-29
+
+### Added
+
+- **Agent token streaming**: Expose `Agent.streamTokens()` so clients can display live model tokens (with optional raw events) while still receiving the final `AgentResult`.
+- **Node streaming example**: Add `examples/node/streaming.ts`, a runnable script that prints live tokens using the new streaming API.
+
+---
+
 ## [2.0.3] - 2025-11-29
 
-### Changed
+### Added
 
 - **Static LangChain provider imports**: Promote `@langchain/openai`, `@langchain/anthropic`, `@langchain/ollama`, and `@sap-ai-sdk/langchain` to direct, statically imported dependencies so bundlers (including Obsidian) always include them without dynamic `import()` fallbacks.
 - **Dynamic loader removal**: Drop the bespoke `dynamicImport` helper for simpler, more reliable provider initialization across runtimes.

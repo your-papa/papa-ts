@@ -76,5 +76,94 @@ describe('Agent', () => {
         const history = await threadStore.read(result.threadId);
         expect(history?.messages[0].content).toEqual('hello world');
     });
+
+    it('streams tokens and emits final result chunks', async () => {
+        const registry = new ProviderRegistry();
+        registry.registerProvider('mock', {
+            chatModels: {
+                default: async () => ({}) as unknown as BaseChatModel,
+            },
+            defaultChatModel: 'default',
+        });
+
+        const telemetry = new MockTelemetry();
+        const threadStore = new InMemoryThreadStore();
+
+        const events = [
+            {
+                event: 'on_chat_model_stream',
+                name: 'MockChatModel',
+                run_id: 'run_1',
+                metadata: {},
+                data: {
+                    chunk: {
+                        content: 'hel',
+                    },
+                },
+            },
+            {
+                event: 'on_chat_model_stream',
+                name: 'MockChatModel',
+                run_id: 'run_1',
+                metadata: {},
+                data: {
+                    chunk: {
+                        content: 'lo',
+                    },
+                },
+            },
+            {
+                event: 'on_chain_end',
+                name: 'AgentExecutor',
+                run_id: 'run_2',
+                metadata: {},
+                data: {
+                    output: {
+                        messages: [
+                            {
+                                role: 'assistant',
+                                content: 'done streaming',
+                            },
+                        ],
+                    },
+                },
+            },
+        ];
+
+        const streamEventsMock = vi.fn(() => ({
+            async *[Symbol.asyncIterator]() {
+                for (const event of events) {
+                    yield event;
+                }
+            },
+        }));
+
+        (createAgent as unknown as vi.Mock).mockReturnValue({ streamEvents: streamEventsMock });
+
+        const agent = new Agent({ registry, telemetry, threadStore });
+        await agent.chooseModel({ provider: 'mock' });
+
+        const observed: unknown[] = [];
+        for await (const chunk of agent.streamTokens({ query: 'stream me', includeEvents: true })) {
+            observed.push(chunk);
+        }
+
+        expect(streamEventsMock).toHaveBeenCalledTimes(1);
+
+        const tokenChunks = observed.filter((chunk) => (chunk as { type?: string }).type === 'token') as Array<{
+            type: string;
+            token: string;
+        }>;
+        expect(tokenChunks.map((chunk) => chunk.token)).toEqual(['hel', 'lo']);
+
+        const resultChunk = observed.find((chunk) => (chunk as { type?: string }).type === 'result') as {
+            result: AgentResult;
+        };
+        expect(resultChunk.result.response).toEqual('done streaming');
+        expect(telemetry.runCompletes).toHaveLength(1);
+
+        const history = await threadStore.read(resultChunk.result.threadId);
+        expect(history?.messages[0].content).toEqual('done streaming');
+    });
 });
 
