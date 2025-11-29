@@ -14,7 +14,7 @@ import {
 
 async function main() {
   const registry = new ProviderRegistry();
-  registry.useOpenAI();
+  await registry.useOpenAI();
 
   const agent = new Agent({
     registry,

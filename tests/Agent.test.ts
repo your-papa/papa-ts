@@ -34,7 +34,7 @@ describe('Agent', () => {
 
     it('runs with mocked createAgent and records telemetry + memory', async () => {
         const registry = new ProviderRegistry();
-        registry.registerProvider('mock', {
+        await registry.registerProvider('mock', {
             chatModels: {
                 default: async () => ({}) as unknown as BaseChatModel,
             },
@@ -79,7 +79,7 @@ describe('Agent', () => {
 
     it('streams tokens and emits final result chunks', async () => {
         const registry = new ProviderRegistry();
-        registry.registerProvider('mock', {
+        await registry.registerProvider('mock', {
             chatModels: {
                 default: async () => ({}) as unknown as BaseChatModel,
             },

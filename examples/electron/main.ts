@@ -9,7 +9,7 @@ import {
 
 async function bootstrap() {
   const registry = new ProviderRegistry();
-  registry.useOllama();
+  await registry.useOllama();
 
   const telemetry = new LangfuseTelemetry({
     publicKey: process.env.LANGFUSE_PUBLIC_KEY ?? '',

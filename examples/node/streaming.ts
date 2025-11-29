@@ -17,7 +17,9 @@ import { Agent, ProviderRegistry } from '../../src';
 dotenv.config({ path: './examples/node/.env', override: true });
 
 async function main(): Promise<void> {
-    const registry = new ProviderRegistry().useOpenAI().useSapAICore();
+    const registry = new ProviderRegistry();
+    await registry.useOpenAI();
+    await registry.useSapAICore();
 
     const agent = new Agent({
         registry,

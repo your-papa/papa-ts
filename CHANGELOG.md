@@ -4,6 +4,23 @@ All notable changes to `papa-ts` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2025-11-29
+
+### Breaking
+
+- **Async provider registration**: `ProviderRegistry.registerProvider()` and `useOpenAI()/useAnthropic()/useOllama()/useSapAICore()` now return promises so they can await dynamic model discovery. Callers must `await` these methods before choosing models.
+
+### Added
+
+- **Dynamic model discovery**: Built-in providers now query their respective APIs (OpenAI, Anthropic, Ollama, SAP AI Core) to list available chat/embedding models instead of relying on hard-coded defaults. Override the discovery by passing explicit `chatModels` / `embeddingModels` if needed.
+
+### Changed
+
+- **Provider configuration surface**: Extended provider options to accept API keys, base URLs, headers, API versions, and custom `fetch` implementations to support discovery across environments.
+- **Examples/tests**: Updated sample scripts, LangGraph graph, and tests to await provider registration and showcase the new behavior.
+
+---
+
 ## [2.1.0] - 2025-11-29
 
 ### Added

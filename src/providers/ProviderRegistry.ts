@@ -25,7 +25,8 @@ interface InternalProviderDefinition {
 export class ProviderRegistry {
     private readonly providers = new Map<string, InternalProviderDefinition>();
 
-    registerProvider(name: string, definition: ProviderDefinition): this {
+    async registerProvider(name: string, definition: ProviderDefinition | Promise<ProviderDefinition>): Promise<this> {
+        const resolvedDefinition = await definition;
         const key = ProviderRegistry.normalizeName(name);
         const existing = this.providers.get(key) ?? {
             chatModels: {},
@@ -36,19 +37,20 @@ export class ProviderRegistry {
 
         const chatModels: Record<string, ChatModelFactory> = {
             ...existing.chatModels,
-            ...(definition.chatModels ?? {}),
+            ...(resolvedDefinition.chatModels ?? {}),
         };
 
         const embeddingModels: Record<string, EmbeddingModelFactory> = {
             ...existing.embeddingModels,
-            ...(definition.embeddingModels ?? {}),
+            ...(resolvedDefinition.embeddingModels ?? {}),
         };
 
         const mergedDefinition: InternalProviderDefinition = {
             chatModels,
             embeddingModels,
-            defaultChatModel: definition.defaultChatModel ?? existing.defaultChatModel ?? firstKey(chatModels),
-            defaultEmbeddingModel: definition.defaultEmbeddingModel ?? existing.defaultEmbeddingModel ?? firstKey(embeddingModels),
+            defaultChatModel: resolvedDefinition.defaultChatModel ?? existing.defaultChatModel ?? firstKey(chatModels),
+            defaultEmbeddingModel:
+                resolvedDefinition.defaultEmbeddingModel ?? existing.defaultEmbeddingModel ?? firstKey(embeddingModels),
         };
 
         this.providers.set(key, mergedDefinition);
@@ -97,19 +99,19 @@ export class ProviderRegistry {
         return factory(options);
     }
 
-    useOpenAI(options?: BuiltInProviderOptions): this {
+    useOpenAI(options?: BuiltInProviderOptions): Promise<this> {
         return this.registerProvider('openai', createOpenAIProviderDefinition(options));
     }
 
-    useAnthropic(options?: BuiltInProviderOptions): this {
+    useAnthropic(options?: BuiltInProviderOptions): Promise<this> {
         return this.registerProvider('anthropic', createAnthropicProviderDefinition(options));
     }
 
-    useOllama(options?: BuiltInProviderOptions): this {
+    useOllama(options?: BuiltInProviderOptions): Promise<this> {
         return this.registerProvider('ollama', createOllamaProviderDefinition(options));
     }
 
-    useSapAICore(options?: SapAICoreProviderOptions): this {
+    useSapAICore(options?: SapAICoreProviderOptions): Promise<this> {
         return this.registerProvider('sap-ai-core', createSapAICoreProviderDefinition(options));
     }
 

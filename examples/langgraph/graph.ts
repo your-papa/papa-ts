@@ -19,20 +19,20 @@ const systemPrompt =
     process.env.LANGGRAPH_AGENT_SYSTEM_PROMPT ??
     'You are a privacy-first assistant served via LangGraph CLI.';
 
-function createRegistry(): ProviderRegistry {
+async function createRegistry(): Promise<ProviderRegistry> {
     const registry = new ProviderRegistry();
     switch (providerId) {
         case 'openai':
-            registry.useOpenAI();
+            await registry.useOpenAI();
             break;
         case 'sap-ai-core':
-            registry.useSapAICore();
+            await registry.useSapAICore();
             break;
         case 'anthropic':
-            registry.useAnthropic();
+            await registry.useAnthropic();
             break;
         case 'ollama':
-            registry.useOllama();
+            await registry.useOllama();
             break;
         default:
             throw new Error(
@@ -43,7 +43,7 @@ function createRegistry(): ProviderRegistry {
 }
 
 export async function makeGraph(): Promise<ReturnType<typeof buildAgent>> {
-    const registry = createRegistry();
+    const registry = await createRegistry();
     const model = await registry.getChatModel(providerId, modelName);
     return buildAgent({
         model,

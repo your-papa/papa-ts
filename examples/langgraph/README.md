@@ -20,7 +20,7 @@ In browser or locked-down environments you can supply provider credentials direc
 
 ```ts
 const registry = new ProviderRegistry();
-registry.useOpenAI({
+await registry.useOpenAI({
   chatModels: {
     'gpt-4o-mini': {
       model: 'gpt-4o-mini',

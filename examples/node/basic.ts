@@ -22,7 +22,9 @@ dotenv.config({ path: './examples/node/.env', override: true })
 
 async function main(): Promise<void> {
     // Configure providers (extend as needed)
-    const registry = new ProviderRegistry().useSapAICore().useOpenAI();
+    const registry = new ProviderRegistry();
+    await registry.useSapAICore();
+    await registry.useOpenAI();
 
     // Choose whichever telemetry backend you prefer (or omit for no tracing)
     const telemetry =

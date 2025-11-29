@@ -23,7 +23,17 @@ export type BuiltInProviderModelMap =
     | Record<string, string>
     | Record<string, BuiltInProviderModelMapEntry>;
 
-export interface BuiltInProviderOptions {
+export interface ProviderApiConfigOptions {
+    apiKey?: string;
+    baseUrl?: string;
+    headers?: Record<string, string>;
+    apiVersion?: string;
+    organization?: string;
+    project?: string;
+    fetchImpl?: typeof fetch;
+}
+
+export interface BuiltInProviderOptions extends ProviderApiConfigOptions {
     chatModels?: BuiltInProviderModelMap;
     embeddingModels?: BuiltInProviderModelMap;
     defaultChatModel?: string;
@@ -32,7 +42,7 @@ export interface BuiltInProviderOptions {
 
 export interface SapAICoreModelEntry extends BuiltInProviderModelMapEntry { }
 
-export interface SapAICoreProviderOptions {
+export interface SapAICoreProviderOptions extends ProviderApiConfigOptions {
     chatModels?: Record<string, SapAICoreModelEntry>;
     embeddingModels?: Record<string, SapAICoreModelEntry>;
     defaultChatModel?: string;
