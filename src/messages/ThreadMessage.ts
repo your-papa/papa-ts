@@ -55,8 +55,8 @@ function normalizeThreadMessage(message: unknown, index: number): ThreadMessage 
     if (isThreadMessage(message)) {
         return message;
     }
-    if (isPlainObject(message) && 'kwargs' in message && isPlainObject((message as { kwargs?: unknown }).kwargs)) {
-        return fromSerializedLangChainMessage(message as SerializedLangChainMessage, index);
+    if (isSerializedLangChainMessage(message)) {
+        return fromSerializedLangChainMessage(message, index);
     }
     if (isPlainObject(message) && typeof (message as { role?: unknown }).role === 'string') {
         return fromRoleContentObject(message as Record<string, unknown>, index);
@@ -80,6 +80,16 @@ function normalizeThreadMessage(message: unknown, index: number): ThreadMessage 
 interface SerializedLangChainMessage {
     id?: unknown;
     kwargs: Record<string, unknown>;
+}
+
+function isSerializedLangChainMessage(value: unknown): value is SerializedLangChainMessage {
+    if (!isPlainObject(value)) {
+        return false;
+    }
+    if (!('kwargs' in value)) {
+        return false;
+    }
+    return isPlainObject((value as { kwargs: unknown }).kwargs);
 }
 
 function fromSerializedLangChainMessage(message: SerializedLangChainMessage, index: number): ThreadMessage {
