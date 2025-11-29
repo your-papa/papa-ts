@@ -11,6 +11,12 @@ export {
     type ModelOptions,
 } from './providers/ProviderRegistry';
 
+// Re-export LangChain's tool helper so consumers don't need to depend on
+// @langchain/core directly when defining tools for papa-ts agents.
+// This keeps the public API small while avoiding an extra direct dependency
+// in downstream projects.
+export { tool } from '@langchain/core/tools';
+
 export { Agent, type AgentRunOptions, type AgentResult, type AgentOptions, type ChooseModelParams } from './agent/Agent';
 export { buildAgent, type BuildAgentParams } from './agent/build';
 

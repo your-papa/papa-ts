@@ -9,8 +9,7 @@
 import 'dotenv/config';
 
 import { z } from 'zod';
-import { buildAgent, ProviderRegistry } from '../../src';
-import { tool } from '@langchain/core/tools';
+import { buildAgent, ProviderRegistry, tool } from '../../src';
 
 type SupportedProvider = 'openai' | 'sap-ai-core' | 'anthropic' | 'ollama';
 

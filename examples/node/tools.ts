@@ -10,7 +10,6 @@
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { z } from 'zod';
-import { tool } from '@langchain/core/tools';
 
 import {
     Agent,
@@ -18,6 +17,7 @@ import {
     FsThreadStore,
     LangSmithTelemetry,
     LangfuseTelemetry,
+    tool,
 } from '../../src';
 
 
