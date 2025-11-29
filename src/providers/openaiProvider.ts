@@ -1,5 +1,6 @@
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { EmbeddingsInterface } from '@langchain/core/embeddings';
+import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import type {
     BuiltInProviderModelMap,
     BuiltInProviderModelMapEntry,
@@ -9,7 +10,6 @@ import type {
     ProviderDefinition,
 } from './types';
 import { ProviderImportError } from './errors';
-import { dynamicImport } from './dynamicImport';
 import { createChatFactories, createEmbeddingFactories, firstKey } from './helpers';
 
 const DEFAULT_CHAT_ENTRIES: BuiltInProviderModelMap = {
@@ -39,10 +39,6 @@ export function createOpenAIProviderDefinition(options?: BuiltInProviderOptions)
 function createOpenAIChatFactory(descriptor: BuiltInProviderModelMapEntry): ChatModelFactory {
     return async (options) => {
         try {
-            const mod = await dynamicImport<{ ChatOpenAI: new (config: Record<string, unknown>) => BaseChatModel }>(
-                '@langchain/openai',
-            );
-            const ChatOpenAI = (mod as { ChatOpenAI: new (config: Record<string, unknown>) => BaseChatModel }).ChatOpenAI;
             return new ChatOpenAI({ model: descriptor.model, ...(descriptor.options ?? {}), ...(options ?? {}) });
         } catch (error) {
             throw new ProviderImportError('openai', '@langchain/openai', error);
@@ -53,12 +49,6 @@ function createOpenAIChatFactory(descriptor: BuiltInProviderModelMapEntry): Chat
 function createOpenAIEmbeddingFactory(descriptor: BuiltInProviderModelMapEntry): EmbeddingModelFactory {
     return async (options) => {
         try {
-            const mod = await dynamicImport<{ OpenAIEmbeddings: new (config: Record<string, unknown>) => EmbeddingsInterface }>(
-                '@langchain/openai',
-            );
-            const OpenAIEmbeddings = (
-                mod as { OpenAIEmbeddings: new (config: Record<string, unknown>) => EmbeddingsInterface }
-            ).OpenAIEmbeddings;
             return new OpenAIEmbeddings({ model: descriptor.model, ...(descriptor.options ?? {}), ...(options ?? {}) });
         } catch (error) {
             throw new ProviderImportError('openai', '@langchain/openai', error);

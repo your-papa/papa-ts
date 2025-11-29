@@ -1,4 +1,4 @@
-import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { ChatAnthropic } from '@langchain/anthropic';
 import type {
     BuiltInProviderModelMap,
     BuiltInProviderModelMapEntry,
@@ -7,7 +7,6 @@ import type {
     ProviderDefinition,
 } from './types';
 import { ProviderImportError } from './errors';
-import { dynamicImport } from './dynamicImport';
 import { createChatFactories, firstKey } from './helpers';
 
 const DEFAULT_CHAT_ENTRIES: BuiltInProviderModelMap = {
@@ -28,12 +27,6 @@ export function createAnthropicProviderDefinition(options?: BuiltInProviderOptio
 function createAnthropicChatFactory(descriptor: BuiltInProviderModelMapEntry): ChatModelFactory {
     return async (options) => {
         try {
-            const mod = await dynamicImport<{ ChatAnthropic: new (config: Record<string, unknown>) => BaseChatModel }>(
-                '@langchain/anthropic',
-            );
-            const ChatAnthropic = (
-                mod as { ChatAnthropic: new (config: Record<string, unknown>) => BaseChatModel }
-            ).ChatAnthropic;
             return new ChatAnthropic({ model: descriptor.model, ...(descriptor.options ?? {}), ...(options ?? {}) });
         } catch (error) {
             throw new ProviderImportError('anthropic', '@langchain/anthropic', error);

@@ -1,5 +1,4 @@
-import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import type { EmbeddingsInterface } from '@langchain/core/embeddings';
+import { AzureOpenAiChatClient, AzureOpenAiEmbeddingClient } from '@sap-ai-sdk/langchain';
 import type {
     ChatModelFactory,
     EmbeddingModelFactory,
@@ -8,7 +7,6 @@ import type {
     SapAICoreProviderOptions,
 } from './types';
 import { ProviderImportError } from './errors';
-import { dynamicImport } from './dynamicImport';
 import { firstKey } from './helpers';
 
 const DEFAULT_CHAT_ENTRIES: Record<string, SapAICoreModelEntry> = {
@@ -33,11 +31,6 @@ export function createSapAICoreProviderDefinition(options?: SapAICoreProviderOpt
     };
 }
 
-type SapAIAzureModule = {
-    AzureOpenAiChatClient?: new (config: Record<string, unknown>) => BaseChatModel;
-    AzureOpenAiEmbeddingClient?: new (config: Record<string, unknown>) => EmbeddingsInterface;
-};
-
 function createSapAICoreChatFactories(entries: Record<string, SapAICoreModelEntry>): Record<string, ChatModelFactory> {
     return Object.entries(entries).reduce<Record<string, ChatModelFactory>>((acc, [alias, descriptor]) => {
         acc[alias] = createSapAICoreChatFactory(alias, descriptor);
@@ -57,8 +50,7 @@ function createSapAICoreEmbeddingFactories(
 function createSapAICoreChatFactory(alias: string, descriptor: SapAICoreModelEntry): ChatModelFactory {
     return async (options) => {
         try {
-            const mod = await dynamicImport<SapAIAzureModule>('@sap-ai-sdk/langchain');
-            if (!mod.AzureOpenAiChatClient) {
+            if (!AzureOpenAiChatClient) {
                 throw new Error('AzureOpenAiChatClient export missing');
             }
 
@@ -68,7 +60,7 @@ function createSapAICoreChatFactory(alias: string, descriptor: SapAICoreModelEnt
                 ...(options ?? {}),
             };
 
-            return new mod.AzureOpenAiChatClient(clientOptions);
+            return new AzureOpenAiChatClient(clientOptions);
         } catch (error) {
             throw new ProviderImportError('sap-ai-core', '@sap-ai-sdk/langchain', error);
         }
@@ -78,8 +70,7 @@ function createSapAICoreChatFactory(alias: string, descriptor: SapAICoreModelEnt
 function createSapAICoreEmbeddingFactory(alias: string, descriptor: SapAICoreModelEntry): EmbeddingModelFactory {
     return async (options) => {
         try {
-            const mod = await dynamicImport<SapAIAzureModule>('@sap-ai-sdk/langchain');
-            if (!mod.AzureOpenAiEmbeddingClient) {
+            if (!AzureOpenAiEmbeddingClient) {
                 throw new Error('AzureOpenAiEmbeddingClient export missing');
             }
 
@@ -89,7 +80,7 @@ function createSapAICoreEmbeddingFactory(alias: string, descriptor: SapAICoreMod
                 ...(options ?? {}),
             };
 
-            return new mod.AzureOpenAiEmbeddingClient(clientOptions);
+            return new AzureOpenAiEmbeddingClient(clientOptions);
         } catch (error) {
             throw new ProviderImportError('sap-ai-core', '@sap-ai-sdk/langchain', error);
         }

@@ -4,6 +4,15 @@ All notable changes to `papa-ts` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.3] - 2025-11-29
+
+### Changed
+
+- **Static LangChain provider imports**: Promote `@langchain/openai`, `@langchain/anthropic`, `@langchain/ollama`, and `@sap-ai-sdk/langchain` to direct, statically imported dependencies so bundlers (including Obsidian) always include them without dynamic `import()` fallbacks.
+- **Dynamic loader removal**: Drop the bespoke `dynamicImport` helper for simpler, more reliable provider initialization across runtimes.
+
+---
+
 ## [2.0.2] - 2025-11-29
 
 ### Added
