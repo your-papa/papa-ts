@@ -223,7 +223,7 @@ describe('Agent', () => {
         expect(history).toBeDefined();
         expect(history?.metadata?.topic).toEqual('demo');
         expect(history?.messages).toHaveLength(1);
-        expect(history?.messages[0].content).toEqual('restored from checkpoint');
+        expect(history?.messages[0].content[0]).toEqual({ type: 'text', text: 'restored from checkpoint' });
     });
 });
 

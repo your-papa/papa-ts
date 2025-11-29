@@ -1,11 +1,3 @@
-export interface ThreadMessage {
-  role: string;
-  content: unknown;
-  toolCallId?: string;
-  name?: string;
-  metadata?: Record<string, unknown>;
-}
-
 export interface ThreadSnapshot {
   threadId: string;
   title?: string;
@@ -54,4 +46,13 @@ function isPlainRecord(value: unknown): Record<string, unknown> | undefined {
   }
   return value as Record<string, unknown>;
 }
+
+export {
+  type ThreadMessage,
+  type ThreadMessageContent,
+  type ThreadMessageJsonContent,
+  type ThreadMessageRole,
+  type ThreadMessageTextContent,
+  type ThreadMessageToolCall,
+} from '../messages/ThreadMessage';
 

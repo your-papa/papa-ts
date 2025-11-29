@@ -38,15 +38,25 @@ export { LangSmithTelemetry, type LangSmithTelemetryOptions } from './telemetry/
 
 export {
     createSnapshot,
-    type ThreadStore,
-    type ThreadMessage,
     type ThreadSnapshot,
     type ThreadSnapshotInit,
+    type ThreadStore,
 } from './memory/ThreadStore';
 export { InMemoryThreadStore } from './memory/InMemoryThreadStore';
 export { LocalStorageThreadStore, type LocalStorageThreadStoreOptions } from './memory/LocalStorageThreadStore';
 export { IndexedDBThreadStore, type IndexedDBThreadStoreOptions } from './memory/IndexedDBThreadStore';
 export { FsThreadStore, type FsThreadStoreOptions } from './memory/FsThreadStore';
+
+export {
+    type ThreadMessage,
+    type ThreadMessageContent,
+    type ThreadMessageJsonContent,
+    type ThreadMessageRole,
+    type ThreadMessageTextContent,
+    type ThreadMessageToolCall,
+    normalizeThreadMessages,
+    getMessageText,
+} from './messages/ThreadMessage';
 
 export {
     LocalStorageCheckpointSaver,

@@ -7,12 +7,8 @@ import { MemorySaver } from '@langchain/langgraph';
 
 import type { ProviderRegistry, ModelOptions } from '../providers/ProviderRegistry';
 import type { Telemetry } from '../telemetry/Telemetry';
-import {
-    createSnapshot,
-    type ThreadMessage,
-    type ThreadSnapshot,
-    type ThreadStore,
-} from '../memory/ThreadStore';
+import { createSnapshot, type ThreadSnapshot, type ThreadStore } from '../memory/ThreadStore';
+import { getMessageText, normalizeThreadMessages, type ThreadMessage } from '../messages/ThreadMessage';
 import { debugLog } from '../utils/logger';
 
 export interface ChooseModelParams {
@@ -362,7 +358,7 @@ export class Agent {
         if (!Array.isArray(messages)) {
             return [];
         }
-        return this.normalizeMessages(messages);
+        return normalizeThreadMessages(messages);
     }
 
     private extractMessagesFromCheckpoint(tuple: CheckpointTuple): ThreadMessage[] {
@@ -374,32 +370,7 @@ export class Agent {
         if (!Array.isArray(messages)) {
             return [];
         }
-        return this.normalizeMessages(messages);
-    }
-
-    private normalizeMessages(messages: unknown[]): ThreadMessage[] {
-        return messages.map((message) => {
-            if (message && typeof message === 'object') {
-                const role = typeof (message as { role?: unknown }).role === 'string' ? (message as { role: string }).role : 'unknown';
-                const toolCallId = typeof (message as { tool_call_id?: unknown }).tool_call_id === 'string'
-                    ? (message as { tool_call_id: string }).tool_call_id
-                    : undefined;
-                const name = typeof (message as { name?: unknown }).name === 'string' ? (message as { name: string }).name : undefined;
-                return {
-                    role,
-                    content: (message as { content?: unknown }).content ?? message,
-                    toolCallId,
-                    name,
-                    metadata: typeof (message as { metadata?: unknown }).metadata === 'object'
-                        ? ((message as { metadata: Record<string, unknown> }).metadata)
-                        : undefined,
-                } satisfies ThreadMessage;
-            }
-            return {
-                role: 'unknown',
-                content: message,
-            } satisfies ThreadMessage;
-        });
+        return normalizeThreadMessages(messages);
     }
 
     private extractOutputFromEvent(event: StreamEvent): unknown | undefined {
@@ -487,7 +458,7 @@ export class Agent {
             return undefined;
         }
         const last = messages[messages.length - 1];
-        return last.content;
+        return getMessageText(last) ?? last.content;
     }
 
     private async persistThreadMetadata(threadId: string, runId: string, messages: ThreadMessage[]): Promise<void> {
@@ -499,10 +470,7 @@ export class Agent {
         metadata.lastRunId = runId;
         metadata.model = this.selectedModel?.name;
         const lastMessage = messages[messages.length - 1];
-        const preview =
-            typeof lastMessage?.content === 'string'
-                ? lastMessage.content
-                : this.normalizeContentToString(lastMessage?.content);
+        const preview = getMessageText(lastMessage);
         if (preview) {
             metadata.lastMessagePreview = preview.slice(0, 200);
         }
