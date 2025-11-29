@@ -42,7 +42,7 @@
     "@langfuse/langchain": "^4.4.0",
     "@langfuse/otel": "^4.4.2",
     "@opentelemetry/sdk-node": "^0.208.0",
-    "@sap-ai-sdk/langchain": "^2.2.0",
+    "@sap-ai-sdk/langchain": "^2.3.0",
     "dotenv": "^17.2.3",
     "langchain": "^1.0.2",
     "langfuse": "^3.38.6",

@@ -3,3 +3,4 @@ node_modules
 .agent-threads
 .DS_Store
 .env
+dist/
