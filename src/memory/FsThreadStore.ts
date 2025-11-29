@@ -25,7 +25,7 @@ export class FsThreadStore implements ThreadStore {
       const { fs, path } = await this.loadNodeModules();
       const file = this.filePath(path, threadId);
       const contents = await fs.readFile(file, 'utf8');
-      return JSON.parse(contents) as ThreadSnapshot;
+      return this.normalize(JSON.parse(contents));
     } catch (error) {
       if (this.isNotFoundError(error)) {
         return undefined;
@@ -65,8 +65,8 @@ export class FsThreadStore implements ThreadStore {
       const file = path.join(this.directory, entry.name);
       try {
         const contents = await fs.readFile(file, 'utf8');
-        const snapshot = JSON.parse(contents) as ThreadSnapshot;
-        if (snapshot.threadId) {
+        const snapshot = this.normalize(JSON.parse(contents));
+        if (snapshot) {
           snapshots.push(snapshot);
         }
       } catch (error) {
@@ -130,6 +130,24 @@ export class FsThreadStore implements ThreadStore {
 
   private hasCode(error: unknown, code: string): boolean {
     return typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === code;
+  }
+
+  private normalize(candidate: unknown): ThreadSnapshot | undefined {
+    if (!candidate || typeof candidate !== 'object') {
+      return undefined;
+    }
+    const snapshot = candidate as Partial<ThreadSnapshot> & { threadId?: unknown; metadata?: unknown };
+    if (typeof snapshot.threadId !== 'string') {
+      return undefined;
+    }
+    const metadata = snapshot.metadata && typeof snapshot.metadata === 'object' ? (snapshot.metadata as Record<string, unknown>) : undefined;
+    return createSnapshot({
+      threadId: snapshot.threadId,
+      title: typeof snapshot.title === 'string' ? snapshot.title : undefined,
+      metadata,
+      createdAt: typeof snapshot.createdAt === 'number' ? snapshot.createdAt : undefined,
+      updatedAt: typeof snapshot.updatedAt === 'number' ? snapshot.updatedAt : undefined,
+    });
   }
 }
 

@@ -28,7 +28,7 @@ export class IndexedDBThreadStore implements ThreadStore {
       const store = transaction.objectStore(this.storeName);
       const request = store.get(threadId);
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result as ThreadSnapshot | undefined);
+      request.onsuccess = () => resolve(this.normalize(request.result));
     });
   }
 
@@ -63,8 +63,13 @@ export class IndexedDBThreadStore implements ThreadStore {
       const request = store.getAll();
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
-        const results = Array.isArray(request.result) ? (request.result as ThreadSnapshot[]) : [];
-        resolve(results.sort((a, b) => b.updatedAt - a.updatedAt));
+        const results = Array.isArray(request.result) ? request.result : [];
+        resolve(
+          results
+            .map((entry) => this.normalize(entry))
+            .filter((entry): entry is ThreadSnapshot => Boolean(entry))
+            .sort((a, b) => b.updatedAt - a.updatedAt),
+        );
       };
     });
   }
@@ -95,6 +100,24 @@ export class IndexedDBThreadStore implements ThreadStore {
       });
     }
     return this.dbPromise;
+  }
+
+  private normalize(candidate: unknown): ThreadSnapshot | undefined {
+    if (!candidate || typeof candidate !== 'object') {
+      return undefined;
+    }
+    const snapshot = candidate as Partial<ThreadSnapshot> & { threadId?: unknown; metadata?: unknown };
+    if (typeof snapshot.threadId !== 'string') {
+      return undefined;
+    }
+    const metadata = snapshot.metadata && typeof snapshot.metadata === 'object' ? (snapshot.metadata as Record<string, unknown>) : undefined;
+    return createSnapshot({
+      threadId: snapshot.threadId,
+      title: typeof snapshot.title === 'string' ? snapshot.title : undefined,
+      metadata,
+      createdAt: typeof snapshot.createdAt === 'number' ? snapshot.createdAt : undefined,
+      updatedAt: typeof snapshot.updatedAt === 'number' ? snapshot.updatedAt : undefined,
+    });
   }
 }
 

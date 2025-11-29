@@ -25,6 +25,7 @@ export {
     type AgentStreamOptions,
     type AgentStreamChunk,
     type ChooseModelParams,
+    type ThreadHistory,
 } from './agent/Agent';
 export { buildAgent, type BuildAgentParams } from './agent/build';
 
@@ -40,9 +41,15 @@ export {
     type ThreadStore,
     type ThreadMessage,
     type ThreadSnapshot,
+    type ThreadSnapshotInit,
 } from './memory/ThreadStore';
 export { InMemoryThreadStore } from './memory/InMemoryThreadStore';
 export { LocalStorageThreadStore, type LocalStorageThreadStoreOptions } from './memory/LocalStorageThreadStore';
 export { IndexedDBThreadStore, type IndexedDBThreadStoreOptions } from './memory/IndexedDBThreadStore';
 export { FsThreadStore, type FsThreadStoreOptions } from './memory/FsThreadStore';
+
+export {
+    LocalStorageCheckpointSaver,
+    type LocalStorageCheckpointSaverOptions,
+} from './checkpoint/LocalStorageCheckpointSaver';
 

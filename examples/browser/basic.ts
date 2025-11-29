@@ -10,6 +10,7 @@ import {
   Agent,
   ProviderRegistry,
   IndexedDBThreadStore,
+  LocalStorageCheckpointSaver,
 } from '../../src';
 
 async function main() {
@@ -19,6 +20,7 @@ async function main() {
   const agent = new Agent({
     registry,
     threadStore: new IndexedDBThreadStore({ dbName: 'privacy-agent' }),
+    checkpointer: new LocalStorageCheckpointSaver({ prefix: 'privacy-agent' }),
   });
 
   await agent.chooseModel({ provider: 'openai', chatModel: 'gpt-4o-mini' });

@@ -4,6 +4,23 @@ All notable changes to `papa-ts` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2025-11-29
+
+### Breaking
+
+- **ThreadStore metadata-only contract**: `ThreadSnapshot` no longer contains `messages`. All thread stores (in-memory, FS, IndexedDB, localStorage) now persist only thread metadata (`threadId`, `title`, timestamps, custom metadata). Consumers should rely on LangGraph checkpoint savers for conversation history.
+- **Thread history API**: `Agent.getThreadHistory()` now returns a `ThreadHistory` object that merges thread metadata with messages loaded from the configured checkpointer. Downstream code should update type references accordingly.
+
+### Added
+
+- **LocalStorageCheckpointSaver**: New `LocalStorageCheckpointSaver` implementation lets browser environments persist LangGraph checkpoints and pending writes using `localStorage`. Exported via the public API and wired into the browser example.
+- **Enhanced metadata helpers**: `createSnapshot` now normalizes metadata/timestamps on input, simplifying upgrades from previous formats.
+
+### Changed
+
+- **Agent persistence flow**: The agent now writes only metadata (last run id, model, message preview/role) to the configured `ThreadStore` while leaving messages to the checkpoint saver. Fetching history automatically stitches checkpoint messages with stored metadata.
+- **Thread store implementations/tests**: Updated file system, IndexedDB, localStorage, and in-memory stores plus tests and examples to the metadata-only model to avoid mismatches and lost `role` fields.
+
 ## [2.2.0] - 2025-11-29
 
 ### Breaking

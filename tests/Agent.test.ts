@@ -9,10 +9,12 @@ import { createAgent } from 'langchain';
 import { Agent } from '../src/agent/Agent';
 import { ProviderRegistry } from '../src/providers/ProviderRegistry';
 import { InMemoryThreadStore } from '../src/memory/InMemoryThreadStore';
+import { createSnapshot } from '../src/memory/ThreadStore';
 import type { Telemetry } from '../src/telemetry/Telemetry';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { RunnableConfig } from '@langchain/core/runnables';
 import type { AgentResult } from '../src/agent/Agent';
+import type { CheckpointTuple } from '@langchain/langgraph';
 
 class MockTelemetry implements Telemetry {
     callbacks = [];
@@ -73,8 +75,9 @@ describe('Agent', () => {
         expect(invokeMock).toHaveBeenCalledTimes(1);
         expect(telemetry.runCompletes).toHaveLength(1);
 
-        const history = await threadStore.read(result.threadId);
-        expect(history?.messages[0].content).toEqual('hello world');
+        const metadata = await threadStore.read(result.threadId);
+        expect(metadata?.metadata?.lastRunId).toEqual(result.runId);
+        expect(metadata?.metadata?.model).toEqual('default');
     });
 
     it('streams tokens and emits final result chunks', async () => {
@@ -162,8 +165,65 @@ describe('Agent', () => {
         expect(resultChunk.result.response).toEqual('done streaming');
         expect(telemetry.runCompletes).toHaveLength(1);
 
-        const history = await threadStore.read(resultChunk.result.threadId);
-        expect(history?.messages[0].content).toEqual('done streaming');
+        const metadata = await threadStore.read(resultChunk.result.threadId);
+        expect(metadata?.metadata?.lastRunId).toEqual(resultChunk.result.runId);
+        expect(metadata?.metadata?.model).toEqual('default');
+    });
+
+    it('combines thread metadata with checkpoint messages when fetching history', async () => {
+        const registry = new ProviderRegistry();
+        await registry.registerProvider('mock', {
+            chatModels: {
+                default: async () => ({}) as unknown as BaseChatModel,
+            },
+            defaultChatModel: 'default',
+        });
+
+        const telemetry = new MockTelemetry();
+        const threadStore = new InMemoryThreadStore();
+        await threadStore.write(
+            createSnapshot({
+                threadId: 'thread-123',
+                title: 'Test thread',
+                metadata: { topic: 'demo' },
+            }),
+        );
+
+        (createAgent as unknown as vi.Mock).mockReturnValue({
+            invoke: vi.fn(),
+        });
+
+        const agent = new Agent({ registry, telemetry, threadStore });
+        await agent.chooseModel({ provider: 'mock' });
+
+        const checkpointer = (agent as unknown as { checkpointer: { getTuple: (config: RunnableConfig) => Promise<CheckpointTuple | undefined> } }).checkpointer;
+        const now = new Date().toISOString();
+        vi.spyOn(checkpointer, 'getTuple').mockResolvedValue({
+            config: { configurable: { thread_id: 'thread-123', checkpoint_id: 'chk_1', checkpoint_ns: '' } },
+            checkpoint: {
+                v: 4,
+                id: 'chk_1',
+                ts: now,
+                channel_values: {
+                    messages: [
+                        {
+                            role: 'assistant',
+                            content: 'restored from checkpoint',
+                        },
+                    ],
+                },
+                channel_versions: {},
+                versions_seen: {},
+            },
+            metadata: {},
+            pendingWrites: [],
+        });
+
+        const history = await agent.getThreadHistory('thread-123');
+        expect(history).toBeDefined();
+        expect(history?.metadata?.topic).toEqual('demo');
+        expect(history?.messages).toHaveLength(1);
+        expect(history?.messages[0].content).toEqual('restored from checkpoint');
     });
 });
 

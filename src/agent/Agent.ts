@@ -38,6 +38,10 @@ export interface AgentResult {
     raw: unknown;
 }
 
+export interface ThreadHistory extends ThreadSnapshot {
+    messages: ThreadMessage[];
+}
+
 export interface AgentOptions {
     registry: ProviderRegistry;
     telemetry?: Telemetry;
@@ -173,19 +177,7 @@ export class Agent {
 
         const finishedAt = new Date();
         const messages = this.extractMessagesFromResult(rawResult);
-        if (this.threadStore) {
-            await this.threadStore.write(
-                createSnapshot({
-                    threadId,
-                    messages,
-                    metadata: {
-                        lastRunId: runId,
-                        model: this.selectedModel.name,
-                    },
-                }),
-            );
-            debugLog('agent.threadStore.write', { threadId, lastRunId: runId, messageCount: messages.length });
-        }
+        await this.persistThreadMetadata(threadId, runId, messages);
 
         const result: AgentResult = {
             runId,
@@ -282,19 +274,7 @@ export class Agent {
 
         const finishedAt = new Date();
         const messages = this.extractMessagesFromResult(rawResult);
-        if (this.threadStore) {
-            await this.threadStore.write(
-                createSnapshot({
-                    threadId,
-                    messages,
-                    metadata: {
-                        lastRunId: runId,
-                        model: this.selectedModel.name,
-                    },
-                }),
-            );
-            debugLog('agent.threadStore.write', { threadId, lastRunId: runId, messageCount: messages.length });
-        }
+        await this.persistThreadMetadata(threadId, runId, messages);
 
         const result: AgentResult = {
             runId,
@@ -320,21 +300,25 @@ export class Agent {
         };
     }
 
-    async getThreadHistory(threadId: string): Promise<ThreadSnapshot | undefined> {
-        if (this.threadStore) {
-            return this.threadStore.read(threadId);
+    async getThreadHistory(threadId: string): Promise<ThreadHistory | undefined> {
+        const [metadata, tuple] = await Promise.all([
+            this.threadStore?.read(threadId),
+            this.safeGetCheckpointTuple(threadId),
+        ]);
+
+        if (!metadata && !tuple) {
+            return undefined;
         }
 
-        if (this.checkpointer instanceof MemorySaver) {
-            const tuple = await this.checkpointer.getTuple({ configurable: { thread_id: threadId } });
-            if (!tuple) {
-                return undefined;
-            }
-            const messages = this.extractMessagesFromCheckpoint(tuple);
-            return createSnapshot({ threadId, messages });
-        }
+        const checkpointTimestamp = tuple ? Date.parse(tuple.checkpoint.ts) || Date.now() : Date.now();
+        const baseSnapshot = metadata ? { ...metadata } : createSnapshot({ threadId, updatedAt: checkpointTimestamp, createdAt: checkpointTimestamp });
+        const messages = tuple ? this.extractMessagesFromCheckpoint(tuple) : [];
 
-        return undefined;
+        return {
+            ...baseSnapshot,
+            updatedAt: metadata?.updatedAt ?? checkpointTimestamp,
+            messages,
+        };
     }
 
     private buildRunnableConfig(options: AgentRunOptions, threadId: string): RunnableConfig {
@@ -504,6 +488,48 @@ export class Agent {
         }
         const last = messages[messages.length - 1];
         return last.content;
+    }
+
+    private async persistThreadMetadata(threadId: string, runId: string, messages: ThreadMessage[]): Promise<void> {
+        if (!this.threadStore) {
+            return;
+        }
+        const existing = await this.threadStore.read(threadId);
+        const metadata: Record<string, unknown> = { ...(existing?.metadata ?? {}) };
+        metadata.lastRunId = runId;
+        metadata.model = this.selectedModel?.name;
+        const lastMessage = messages[messages.length - 1];
+        const preview =
+            typeof lastMessage?.content === 'string'
+                ? lastMessage.content
+                : this.normalizeContentToString(lastMessage?.content);
+        if (preview) {
+            metadata.lastMessagePreview = preview.slice(0, 200);
+        }
+        if (lastMessage?.role) {
+            metadata.lastMessageRole = lastMessage.role;
+        }
+        await this.threadStore.write(
+            createSnapshot({
+                threadId,
+                title: existing?.title,
+                metadata,
+                createdAt: existing?.createdAt,
+            }),
+        );
+        debugLog('agent.threadStore.write', { threadId, lastRunId: runId });
+    }
+
+    private async safeGetCheckpointTuple(threadId: string): Promise<CheckpointTuple | undefined> {
+        try {
+            return await this.checkpointer.getTuple({ configurable: { thread_id: threadId } });
+        } catch (error) {
+            debugLog('agent.checkpointer.getTuple.error', {
+                threadId,
+                message: error instanceof Error ? error.message : String(error),
+            });
+            return undefined;
+        }
     }
 
     private generateId(): string {

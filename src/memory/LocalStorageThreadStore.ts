@@ -71,11 +71,18 @@ export class LocalStorageThreadStore implements ThreadStore {
 
   private safeParse(raw: string): ThreadSnapshot | undefined {
     try {
-      const parsed = JSON.parse(raw) as ThreadSnapshot;
-      if (!parsed || typeof parsed.threadId !== 'string' || !Array.isArray(parsed.messages)) {
+      const parsed = JSON.parse(raw) as Partial<ThreadSnapshot> & { threadId?: unknown; metadata?: unknown };
+      if (!parsed || typeof parsed.threadId !== 'string') {
         return undefined;
       }
-      return parsed;
+      const metadata = parsed.metadata && typeof parsed.metadata === 'object' ? (parsed.metadata as Record<string, unknown>) : undefined;
+      return createSnapshot({
+        threadId: parsed.threadId,
+        title: typeof parsed.title === 'string' ? parsed.title : undefined,
+        metadata,
+        createdAt: typeof parsed.createdAt === 'number' ? parsed.createdAt : undefined,
+        updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : undefined,
+      });
     } catch {
       return undefined;
     }
