@@ -4,6 +4,19 @@ All notable changes to `papa-ts` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2025-11-29
+
+### Added
+
+- **SAP AI Core embedding support**: Add default embedding models and factories for SAP AI Core via `@sap-ai-sdk/langchain`.
+
+### Changed
+
+- **SAP AI Core chat integration**: Migrate to `AzureOpenAiChatClient` / `AzureOpenAiEmbeddingClient` usage for a more direct and flexible integration.
+- **Node example**: Update `examples/node/tools.ts` to demonstrate using SAP AI Core as the provider (with `gpt-5`) instead of OpenAI as the default.
+
+---
+
 ## [2.0.0] - 2025-11-20
 
 ### Breaking Changes

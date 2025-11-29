@@ -90,7 +90,7 @@ const fetchUrlTool = tool(
 
 async function main(): Promise<void> {
 
-    const registry = new ProviderRegistry().useOpenAI();
+    const registry = new ProviderRegistry().useOpenAI().useSapAICore();
 
     let telemetry =
         process.env.LANGSMITH_API_KEY && process.env.LANGSMITH_PROJECT
@@ -116,8 +116,8 @@ async function main(): Promise<void> {
     });
 
     await agent.chooseModel({
-        provider: 'openai',
-        chatModel: 'gpt-4.1',
+        provider: 'sap-ai-core',
+        chatModel: 'gpt-5',
     });
 
     agent.setPrompt(
