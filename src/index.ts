@@ -63,3 +63,13 @@ export {
     type LocalStorageCheckpointSaverOptions,
 } from './checkpoint/LocalStorageCheckpointSaver';
 
+export {
+    BaseCheckpointSaver,
+    type Checkpoint,
+    type CheckpointMetadata,
+    type CheckpointTuple,
+    type CheckpointListOptions,
+    type PendingWrite,
+} from '@langchain/langgraph-checkpoint';
+
+export { type RunnableConfig } from '@langchain/core/runnables';

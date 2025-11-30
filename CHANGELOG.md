@@ -4,6 +4,12 @@ All notable changes to `papa-ts` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.1] - 2025-11-30
+
+### Added
+
+- **Checkpoint and Runnable exports**: Exported `BaseCheckpointSaver`, `Checkpoint`, `CheckpointMetadata`, `CheckpointTuple`, `PendingWrite`, `CheckpointListOptions` (from `@langchain/langgraph-checkpoint`) and `RunnableConfig` (from `@langchain/core/runnables`). This allows consumers to implement custom checkpoint savers and better type runnable configurations.
+
 ## [2.5.0] - 2025-11-30
 
 ### Added
