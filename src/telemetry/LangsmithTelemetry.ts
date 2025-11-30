@@ -1,3 +1,4 @@
+import { Client } from 'langsmith';
 import { LangChainTracer, type LangChainTracerFields } from '@langchain/core/tracers/tracer_langchain';
 import type { Callbacks } from '@langchain/core/callbacks/manager';
 
@@ -9,6 +10,9 @@ export interface LangSmithTelemetryOptions extends LangChainTracerFields {
      * scripts (such as tests) where the Node.js process may exit immediately.
      */
     flushOnComplete?: boolean;
+    apiKey?: string;
+    endpoint?: string;
+    project?: string;
 }
 
 export class LangSmithTelemetry implements Telemetry {
@@ -16,8 +20,28 @@ export class LangSmithTelemetry implements Telemetry {
     private readonly flushOnComplete: boolean;
 
     constructor(options?: LangSmithTelemetryOptions) {
-        const { flushOnComplete = false, ...fields } = options ?? {};
-        this.tracer = new LangChainTracer(fields);
+        const {
+            flushOnComplete = false,
+            apiKey,
+            endpoint,
+            project,
+            client,
+            ...fields
+        } = options ?? {};
+
+        let tracerClient = client;
+        if (!tracerClient && (apiKey || endpoint)) {
+            tracerClient = new Client({
+                apiKey,
+                apiUrl: endpoint,
+            });
+        }
+
+        this.tracer = new LangChainTracer({
+            ...fields,
+            projectName: project ?? fields.projectName,
+            client: tracerClient,
+        });
         this.flushOnComplete = flushOnComplete;
     }
 
@@ -35,5 +59,3 @@ export class LangSmithTelemetry implements Telemetry {
         }
     }
 }
-
-

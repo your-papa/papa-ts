@@ -4,6 +4,12 @@ All notable changes to `papa-ts` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2025-11-30
+
+### Added
+
+- **LangSmith Telemetry configuration**: Updated `LangSmithTelemetryOptions` to accept explicit `apiKey`, `endpoint`, and `project` parameters, allowing programmatic configuration of the LangSmith client without relying solely on environment variables.
+
 ## [2.4.0] - 2025-11-29
 
 ### Added
