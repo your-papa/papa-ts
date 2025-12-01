@@ -61,12 +61,14 @@ export type AgentStreamChunk =
         type: 'token';
         token: string;
         event: StreamEvent;
+        messages?: ThreadMessage[];
         runId: string;
         threadId: string;
     }
     | {
         type: 'event';
         event: StreamEvent;
+        messages?: ThreadMessage[];
         runId: string;
         threadId: string;
     }
@@ -231,10 +233,13 @@ export class Agent {
         let rawResult: unknown;
         try {
             for await (const event of stream) {
+                const eventMessages = this.extractMessagesFromEvent(event);
+
                 if (includeEvents) {
                     yield {
                         type: 'event',
                         event,
+                        messages: eventMessages.length > 0 ? eventMessages : undefined,
                         runId,
                         threadId,
                     };
@@ -246,6 +251,7 @@ export class Agent {
                         type: 'token',
                         token,
                         event,
+                        messages: eventMessages.length > 0 ? eventMessages : undefined,
                         runId,
                         threadId,
                     };
@@ -381,6 +387,21 @@ export class Agent {
         return undefined;
     }
 
+    private extractMessagesFromEvent(event: StreamEvent): ThreadMessage[] {
+        const output = this.extractOutputFromEvent(event);
+        if (output) {
+            return this.extractMessagesFromResult(output);
+        }
+        const chunk = event?.data?.chunk;
+        if (chunk && typeof chunk === 'object' && 'messages' in chunk) {
+            const messages = (chunk as { messages?: unknown }).messages;
+            if (Array.isArray(messages)) {
+                return normalizeThreadMessages(messages);
+            }
+        }
+        return [];
+    }
+
     private extractTokenFromEvent(event: StreamEvent): string | undefined {
         if (!event.event.endsWith('_stream')) {
             return undefined;
@@ -486,6 +507,55 @@ export class Agent {
             }),
         );
         debugLog('agent.threadStore.write', { threadId, lastRunId: runId });
+    }
+
+    async generateTitle(threadId: string): Promise<string | undefined> {
+        if (!this.selectedModel) {
+            throw new Error('No model selected. Call chooseModel() before generateTitle().');
+        }
+
+        const history = await this.getThreadHistory(threadId);
+        if (!history || history.messages.length === 0) {
+            return undefined;
+        }
+
+        const conversationText = history.messages
+            .map((m) => `${m.role}: ${getMessageText(m) ?? ''}`)
+            .join('\n');
+
+        const prompt = `Generate a short, concise title (max 5 words) for the following conversation. Do not use quotes or markdown.
+
+Conversation:
+${conversationText}`;
+
+        const response = await this.selectedModel.instance.invoke([
+            { role: 'user', content: prompt },
+        ]);
+
+        const content = response.content;
+        let title = '';
+        if (typeof content === 'string') {
+            title = content;
+        } else if (Array.isArray(content)) {
+            title = content.map((c) => (typeof c === 'string' ? c : (c as { text?: string }).text ?? '')).join('');
+        }
+
+        const cleanTitle = title.replace(/^["']|["']$/g, '').trim();
+
+        if (cleanTitle && this.threadStore) {
+            const existing = await this.threadStore.read(threadId);
+            await this.threadStore.write(
+                createSnapshot({
+                    threadId,
+                    title: cleanTitle,
+                    metadata: existing?.metadata,
+                    createdAt: existing?.createdAt,
+                    updatedAt: Date.now(),
+                }),
+            );
+        }
+
+        return cleanTitle;
     }
 
     private async safeGetCheckpointTuple(threadId: string): Promise<CheckpointTuple | undefined> {

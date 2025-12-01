@@ -4,6 +4,17 @@ All notable changes to `papa-ts` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2025-11-30
+
+### Added
+
+- **Normalized messages in stream chunks**: `AgentStreamChunk` types (`token` and `event`) now include an optional `messages?: ThreadMessage[]` field. This allows clients to use a single, consistent message format throughout the streaming lifecycle instead of having to handle raw LangChain events differently from the final result.
+- **Automatic thread title generation**: Added `Agent.generateTitle(threadId)` method that automatically generates a concise title (max 5 words) for a thread based on its conversation history. The generated title is persisted to the thread store and can be used to provide better thread organization and navigation in user interfaces.
+
+### Changed
+
+- **Stream event processing**: The streaming implementation now extracts and normalizes messages from stream events when available, making them accessible via `chunk.messages` in token and event chunks. The raw `event` object remains available for advanced use cases, but clients can rely on the normalized `messages` field for consistent display logic.
+
 ## [2.5.1] - 2025-11-30
 
 ### Added

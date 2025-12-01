@@ -225,5 +225,54 @@ describe('Agent', () => {
         expect(history?.messages).toHaveLength(1);
         expect(history?.messages[0].content[0]).toEqual({ type: 'text', text: 'restored from checkpoint' });
     });
+
+    it('generates a title for a thread', async () => {
+        const registry = new ProviderRegistry();
+        const mockInvoke = vi.fn().mockResolvedValue({
+            content: 'Generated Title',
+        });
+
+        await registry.registerProvider('mock', {
+            chatModels: {
+                default: async () =>
+                    ({
+                        invoke: mockInvoke,
+                    }) as unknown as BaseChatModel,
+            },
+            defaultChatModel: 'default',
+        });
+
+        const telemetry = new MockTelemetry();
+        const threadStore = new InMemoryThreadStore();
+        const agent = new Agent({ registry, telemetry, threadStore });
+        await agent.chooseModel({ provider: 'mock' });
+
+        const threadId = 'thread-123';
+
+        // Spy on getThreadHistory to return messages since we mocked createAgent
+        // and the underlying checkpointer won't be updated by the mock.
+        vi.spyOn(agent, 'getThreadHistory').mockResolvedValue({
+            threadId,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            messages: [
+                { id: '1', role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+                { id: '2', role: 'assistant', content: [{ type: 'text', text: 'Hi there' }] },
+            ],
+        });
+
+        // Write initial metadata to store (optional, but good for consistency)
+        await threadStore.write(createSnapshot({ threadId, createdAt: Date.now() }));
+
+        // Now generate title
+        const title = await agent.generateTitle(threadId);
+
+        expect(title).toBe('Generated Title');
+        expect(mockInvoke).toHaveBeenCalled();
+
+        // Verify it's stored
+        const snapshot = await threadStore.read(threadId);
+        expect(snapshot?.title).toBe('Generated Title');
+    });
 });
 
