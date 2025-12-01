@@ -147,7 +147,7 @@ describe('Agent', () => {
         await agent.chooseModel({ provider: 'mock' });
 
         const observed: unknown[] = [];
-        for await (const chunk of agent.streamTokens({ query: 'stream me', includeEvents: true })) {
+        for await (const chunk of agent.streamTokens({ query: 'stream me' })) {
             observed.push(chunk);
         }
 
@@ -157,7 +157,9 @@ describe('Agent', () => {
             type: string;
             token: string;
         }>;
-        expect(tokenChunks.map((chunk) => chunk.token)).toEqual(['hel', 'lo']);
+        // Filter out empty tokens (emitted when messages update without new tokens)
+        const nonEmptyTokens = tokenChunks.map((chunk) => chunk.token).filter((t) => t.length > 0);
+        expect(nonEmptyTokens).toEqual(['hel', 'lo']);
 
         const resultChunk = observed.find((chunk) => (chunk as { type?: string }).type === 'result') as {
             result: AgentResult;

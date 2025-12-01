@@ -1,6 +1,6 @@
 {
   "name": "papa-ts",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "description": "Backend for your Personal Assistant, powered by Private AI (aka PAPA)",
   "license": "AGPL-3.0-or-later",
   "type": "module",

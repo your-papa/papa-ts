@@ -4,6 +4,18 @@ All notable changes to `papa-ts` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.1] - 2025-11-30
+
+### Fixed
+
+- **Tool call detection during streaming**: Fixed an issue where tool calls were not being detected in stream chunks. The implementation now properly queries checkpoint state on `chain_end` events to capture tool calls and tool responses that may only be available in the checkpoint, not in individual streaming events.
+- **Message format detection**: Improved message normalization to handle LangChain messages with `type` fields (e.g., "human", "ai", "tool") in addition to `role` fields, ensuring correct role mapping for all message formats.
+- **Duplicate message emissions**: Fixed excessive message chunk emissions by only emitting when message count increases, preventing duplicate updates during streaming.
+
+### Changed
+
+- **Message normalization fallback**: Changed default role for unrecognized messages from "system" to "assistant" for more accurate fallback behavior.
+
 ## [2.7.0] - 2025-11-30
 
 ### Breaking

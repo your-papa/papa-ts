@@ -58,8 +58,26 @@ function normalizeThreadMessage(message: unknown, index: number): ThreadMessage 
     if (isSerializedLangChainMessage(message)) {
         return fromSerializedLangChainMessage(message, index);
     }
-    if (isPlainObject(message) && typeof (message as { role?: unknown }).role === 'string') {
-        return fromRoleContentObject(message as Record<string, unknown>, index);
+    if (isPlainObject(message)) {
+        const obj = message as Record<string, unknown>;
+        // Check for role field (our format or plain objects)
+        if (typeof obj.role === 'string') {
+            return fromRoleContentObject(obj, index);
+        }
+        // Check for type field (LangChain message format: "human", "ai", "system", "tool")
+        if (typeof obj.type === 'string') {
+            const role = mapLangChainTypeToRole(obj.type);
+            return {
+                id: typeof obj.id === 'string' && obj.id ? obj.id : createMessageId(index),
+                role,
+                content: buildContentSegments(obj.content),
+                toolCalls: parseToolCalls(obj.tool_calls ?? obj.toolCalls),
+                toolCallId: typeof obj.tool_call_id === 'string' ? obj.tool_call_id : undefined,
+                toolName: typeof obj.name === 'string' ? obj.name : undefined,
+                metadata: isPlainObject(obj.metadata) ? (obj.metadata as Record<string, unknown>) : undefined,
+                raw: message,
+            };
+        }
     }
     if (typeof message === 'string') {
         return {
@@ -71,7 +89,7 @@ function normalizeThreadMessage(message: unknown, index: number): ThreadMessage 
     }
     return {
         id: createMessageId(index),
-        role: 'system',
+        role: 'assistant',
         content: [{ type: 'json', data: message }],
         raw: message,
     };
@@ -290,6 +308,31 @@ function mapFreeformRole(role: string): ThreadMessageRole {
         return normalized;
     }
     return normalized === 'function' ? 'tool' : 'assistant';
+}
+
+function mapLangChainTypeToRole(type: string): ThreadMessageRole {
+    const normalized = type.toLowerCase();
+    switch (normalized) {
+        case 'human':
+        case 'humanmessage':
+        case 'humanmessagechunk':
+            return 'user';
+        case 'ai':
+        case 'aimessage':
+        case 'aimessagechunk':
+        case 'chatmessage':
+            return 'assistant';
+        case 'system':
+        case 'systemmessage':
+            return 'system';
+        case 'tool':
+        case 'toolmessage':
+        case 'function':
+        case 'functionmessage':
+            return 'tool';
+        default:
+            return 'assistant';
+    }
 }
 
 function readLangChainClassName(identifier: unknown): string | undefined {

@@ -216,16 +216,48 @@ export class Agent {
         );
 
         let rawResult: unknown;
+        let lastMessageCount = 0;
         try {
             for await (const event of stream) {
                 const eventMessages = this.extractMessagesFromEvent(event);
-
                 const token = this.extractTokenFromEvent(event);
-                if (token) {
+
+                // For chain_end events (especially after tool execution), try to get latest checkpoint state
+                // This ensures we capture tool calls that might only be in the checkpoint
+                let messagesToEmit: ThreadMessage[] | undefined;
+                const isChainEnd = event.event === 'on_chain_end';
+                const mightHaveToolCalls = isChainEnd && (event.name?.includes('tool') || event.name?.includes('Tool'));
+
+                if ((isChainEnd || mightHaveToolCalls) && eventMessages.length === 0) {
+                    try {
+                        const tuple = await this.checkpointer.getTuple({ configurable: { thread_id: threadId } });
+                        if (tuple) {
+                            const checkpointMessages = this.extractMessagesFromCheckpoint(tuple);
+                            // Only emit if we have new messages with tool calls or tool responses
+                            const hasToolActivity = checkpointMessages.some((msg) => msg.toolCalls || msg.role === 'tool');
+                            if (checkpointMessages.length > lastMessageCount && hasToolActivity) {
+                                messagesToEmit = checkpointMessages;
+                                lastMessageCount = checkpointMessages.length;
+                            }
+                        }
+                    } catch {
+                        // Ignore checkpoint errors during streaming
+                    }
+                } else if (eventMessages.length > 0) {
+                    // Only emit if we have more messages than before
+                    if (eventMessages.length > lastMessageCount) {
+                        messagesToEmit = eventMessages;
+                        lastMessageCount = eventMessages.length;
+                    }
+                }
+
+                // Yield a chunk if we have either a token or new messages
+                // This ensures tool calls and other message updates are visible during streaming
+                if (token || messagesToEmit) {
                     yield {
                         type: 'token',
-                        token,
-                        messages: eventMessages.length > 0 ? eventMessages : undefined,
+                        ...(token ? { token } : { token: '' }),
+                        messages: messagesToEmit,
                         runId,
                         threadId,
                     };
@@ -362,17 +394,46 @@ export class Agent {
     }
 
     private extractMessagesFromEvent(event: StreamEvent): ThreadMessage[] {
+        // Check final output first (most complete state, includes tool calls)
         const output = this.extractOutputFromEvent(event);
         if (output) {
             return this.extractMessagesFromResult(output);
         }
+
+        // Check if event.data.output exists but wasn't recognized as agent output
+        // This can happen with intermediate chain outputs that contain messages
+        const dataOutput = event?.data?.output;
+        if (dataOutput && typeof dataOutput === 'object' && 'messages' in dataOutput) {
+            const messages = (dataOutput as { messages?: unknown }).messages;
+            if (Array.isArray(messages)) {
+                return normalizeThreadMessages(messages);
+            }
+        }
+
+        // Check chunk data for messages
         const chunk = event?.data?.chunk;
-        if (chunk && typeof chunk === 'object' && 'messages' in chunk) {
+        if (!chunk || typeof chunk !== 'object') {
+            return [];
+        }
+
+        // Check if chunk itself is an array of messages
+        if (Array.isArray(chunk)) {
+            return normalizeThreadMessages(chunk);
+        }
+
+        // Check if chunk contains a messages array
+        if ('messages' in chunk) {
             const messages = (chunk as { messages?: unknown }).messages;
             if (Array.isArray(messages)) {
                 return normalizeThreadMessages(messages);
             }
         }
+
+        // Check if chunk is a single message object (common during token streaming)
+        if ('content' in chunk || 'role' in chunk || 'lc' in chunk || 'kwargs' in chunk) {
+            return normalizeThreadMessages([chunk]);
+        }
+
         return [];
     }
 

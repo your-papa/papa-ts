@@ -8,7 +8,12 @@
  * 4. Final result with complete message history
  */
 
-import { Agent, ProviderRegistry, getMessageText, type AgentStreamChunk } from '../../src';
+import { Agent, ProviderRegistry, getMessageText, tool, type AgentStreamChunk } from '../../src';
+import { z } from 'zod';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: './examples/node/.env', override: true });
+
 
 async function simpleStreaming() {
     const registry = new ProviderRegistry();
@@ -82,6 +87,32 @@ async function streamingWithMessages() {
     }
 }
 
+const fetchUrlTool = tool(
+    async ({ url }) => {
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'privacy-agent-node/1.0 (+https://example.com)',
+            },
+        });
+        if (!response.ok) {
+            throw new Error(`Request to ${url} failed with status ${response.status}`);
+        }
+        const text = await response.text();
+        return text.length > 4000 ? `${text.slice(0, 4000)}...` : text;
+    },
+    {
+        name: 'fetch_url',
+        description:
+            'Perform an HTTP GET to retrieve up-to-date information from a specific URL (e.g., https://wttr.in/Berlin?format=3).',
+        schema: z.object({
+            url: z
+                .string()
+                .url()
+                .describe('Fully-qualified URL to fetch (https://...)'),
+        }),
+    },
+);
+
 async function streamingWithToolCalls() {
     const registry = new ProviderRegistry();
     await registry.useOpenAI();
@@ -89,8 +120,7 @@ async function streamingWithToolCalls() {
     const agent = new Agent({ registry });
     await agent.chooseModel({ provider: 'openai', chatModel: 'gpt-4o-mini' });
 
-    // Example with a tool (you'd define your actual tools here)
-    // agent.bindTools([...]);
+    agent.bindTools([fetchUrlTool]);
 
     console.log('\n\n=== Streaming with Tool Calls ===\n');
 
@@ -133,9 +163,9 @@ async function streamingWithToolCalls() {
 // Run examples
 async function main() {
     try {
-        await simpleStreaming();
-        await streamingWithMessages();
-        // await streamingWithToolCalls(); // Uncomment if you have tools defined
+        // await simpleStreaming();
+        // await streamingWithMessages();
+        await streamingWithToolCalls(); // Uncomment if you have tools defined
     } catch (error) {
         console.error('Error:', error);
         process.exitCode = 1;
