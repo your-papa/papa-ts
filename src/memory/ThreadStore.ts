@@ -43,7 +43,7 @@ function isPlainRecord(value: unknown): Record<string, unknown> | undefined {
   }
   if (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) {
     return undefined;
-  }
+}
   return value as Record<string, unknown>;
 }
 

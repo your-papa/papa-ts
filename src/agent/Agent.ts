@@ -48,26 +48,12 @@ export interface AgentOptions {
 
 type AgentRunnable = ReturnType<typeof createAgent>; // invoke(), stream(), etc.
 
-export interface AgentStreamOptions extends AgentRunOptions {
-    /**
-     * When true, every raw LangChain `StreamEvent` is emitted alongside token updates.
-     * Defaults to `false` to avoid shipping extra payload unless explicitly requested.
-     */
-    includeEvents?: boolean;
-}
+export type AgentStreamOptions = AgentRunOptions;
 
 export type AgentStreamChunk =
     | {
         type: 'token';
         token: string;
-        event: StreamEvent;
-        messages?: ThreadMessage[];
-        runId: string;
-        threadId: string;
-    }
-    | {
-        type: 'event';
-        event: StreamEvent;
         messages?: ThreadMessage[];
         runId: string;
         threadId: string;
@@ -193,7 +179,7 @@ export class Agent {
     }
 
     async *streamTokens(options: AgentStreamOptions): AsyncGenerator<AgentStreamChunk> {
-        const { query, includeEvents = false } = options;
+        const { query } = options;
         if (!this.selectedModel) {
             throw new Error('No model selected. Call chooseModel() before streamTokens().');
         }
@@ -212,7 +198,6 @@ export class Agent {
             provider: this.selectedModel.provider,
             model: this.selectedModel.name,
             queryPreview: query.slice(0, 200),
-            includeEvents,
         });
 
         type StreamEventsConfig = Parameters<AgentRunnable['streamEvents']>[1];
@@ -235,22 +220,11 @@ export class Agent {
             for await (const event of stream) {
                 const eventMessages = this.extractMessagesFromEvent(event);
 
-                if (includeEvents) {
-                    yield {
-                        type: 'event',
-                        event,
-                        messages: eventMessages.length > 0 ? eventMessages : undefined,
-                        runId,
-                        threadId,
-                    };
-                }
-
                 const token = this.extractTokenFromEvent(event);
                 if (token) {
                     yield {
                         type: 'token',
                         token,
-                        event,
                         messages: eventMessages.length > 0 ? eventMessages : undefined,
                         runId,
                         threadId,

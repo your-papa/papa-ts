@@ -12,7 +12,7 @@
 
 import dotenv from 'dotenv';
 
-import { Agent, ProviderRegistry } from '../../src';
+import { Agent, ProviderRegistry, getMessageText } from '../../src';
 
 dotenv.config({ path: './examples/node/.env', override: true });
 
@@ -53,7 +53,6 @@ async function main(): Promise<void> {
         for await (const chunk of agent.streamTokens({
             query,
             threadId: 'node-streaming-thread',
-            includeEvents: true,
             signal: abortController.signal,
             metadata: {
                 example: 'node-streaming',
@@ -63,24 +62,24 @@ async function main(): Promise<void> {
                 case 'token': {
                     aggregated += chunk.token;
                     process.stdout.write(chunk.token);
-                    break;
-                }
-                case 'event': {
-                    const isStreamEvent = chunk.event.event.endsWith('_stream');
-                    if (!isStreamEvent) {
-                        console.debug(
-                            `\n[event] ${chunk.event.event} (${chunk.event.name}) run=${chunk.event.run_id}`,
-                        );
-                    }
+                    // Optional: Use normalized messages if available during streaming
+                    // if (chunk.messages) {
+                    //     console.debug(`\n[Updated messages: ${chunk.messages.length}]`);
+                    // }
                     break;
                 }
                 case 'result': {
                     console.log('\n\n✅ Final agent response:', chunk.result.response);
                     console.log('\n🧾 Stored messages:', chunk.result.messages.length);
+                    // All messages are normalized and ready to use
+                    chunk.result.messages.forEach((msg, idx) => {
+                        const text = getMessageText(msg);
+                        if (text) {
+                            console.debug(`  ${idx + 1}. [${msg.role}]: ${text.slice(0, 50)}...`);
+                        }
+                    });
                     break;
                 }
-                default:
-                    break;
             }
         }
     } catch (error) {
