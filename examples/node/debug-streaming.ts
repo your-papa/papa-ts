@@ -23,25 +23,16 @@ const fetchUrlTool = tool(
     },
 );
 
-async function main() {
-    const registry = new ProviderRegistry();
-    await registry.useOpenAI();
-
-    const agent = new Agent({ registry });
-    await agent.chooseModel({ provider: 'openai', chatModel: 'gpt-4o-mini' });
-    agent.bindTools([fetchUrlTool]);
-
-    console.log('=== Debugging Streaming Events ===\n');
-
+async function streamAgent(agent: Agent, query: string) {
     for await (const chunk of agent.streamTokens({
-        query: 'What is the weather in Berlin?',
+        query,
         threadId: 'debug-thread',
     })) {
         if (chunk.type === 'token') {
             if (chunk.token) {
                 process.stdout.write(chunk.token);
             }
-            
+
             if (chunk.messages && chunk.messages.length > 0) {
                 console.log('\n\n📨 Messages detected in chunk:');
                 chunk.messages.forEach((msg, idx) => {
@@ -64,6 +55,20 @@ async function main() {
             });
         }
     }
+}
+
+async function main() {
+    const registry = new ProviderRegistry();
+    await registry.useOpenAI();
+
+    const agent = new Agent({ registry });
+    await agent.chooseModel({ provider: 'openai', chatModel: 'gpt-4o-mini' });
+    agent.bindTools([fetchUrlTool]);
+    await streamAgent(agent, 'What is the weather in Berlin?');
+    await streamAgent(agent, 'What is the weather in Paris?');
+
+    console.log('=== Debugging Streaming Events ===\n');
+
 }
 
 main().catch(console.error);

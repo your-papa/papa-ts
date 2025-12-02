@@ -226,9 +226,10 @@ export class Agent {
                 // This ensures we capture tool calls that might only be in the checkpoint
                 let messagesToEmit: ThreadMessage[] | undefined;
                 const isChainEnd = event.event === 'on_chain_end';
+                const isToolEvent = event.event === 'on_tool_start' || event.event === 'on_tool_end';
                 const mightHaveToolCalls = isChainEnd && (event.name?.includes('tool') || event.name?.includes('Tool'));
 
-                if ((isChainEnd || mightHaveToolCalls) && eventMessages.length === 0) {
+                if ((isChainEnd || mightHaveToolCalls || isToolEvent) && eventMessages.length === 0) {
                     try {
                         const tuple = await this.checkpointer.getTuple({ configurable: { thread_id: threadId } });
                         if (tuple) {

@@ -4,6 +4,12 @@ All notable changes to `papa-ts` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.2] - 2025-12-02
+
+### Fixed
+
+- **Real-time tool streaming**: `Agent.streamTokens` now yields empty token chunks on `on_tool_start` and `on_tool_end` events. This ensures client UIs receive immediate updates when tools are called or finish execution, rather than waiting for the final response generation.
+
 ## [2.7.1] - 2025-11-30
 
 ### Fixed
