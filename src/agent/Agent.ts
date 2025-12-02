@@ -216,11 +216,26 @@ export class Agent {
         );
 
         let rawResult: unknown;
+
+        // Initialize state from current checkpoint to ensure we don't emit truncated history
+        let lastMessages: ThreadMessage[] = [];
         let lastMessageCount = 0;
+        try {
+            const tuple = await this.checkpointer.getTuple({ configurable: { thread_id: threadId } });
+            if (tuple) {
+                lastMessages = this.extractMessagesFromCheckpoint(tuple);
+                lastMessageCount = lastMessages.length;
+            }
+        } catch {
+            // Ignore initial read errors
+        }
+
         try {
             for await (const event of stream) {
                 const eventMessages = this.extractMessagesFromEvent(event);
                 const token = this.extractTokenFromEvent(event);
+
+                // debugLog('stream.event', { event: event.event, token, msgCount: eventMessages.length });
 
                 // For chain_end events (especially after tool execution), try to get latest checkpoint state
                 // This ensures we capture tool calls that might only be in the checkpoint
@@ -229,6 +244,21 @@ export class Agent {
                 const isToolEvent = event.event === 'on_tool_start' || event.event === 'on_tool_end';
                 const mightHaveToolCalls = isChainEnd && (event.name?.includes('tool') || event.name?.includes('Tool'));
 
+                // Handle start of LLM generation - emit a placeholder assistant message
+                // This ensures the client has a message to append tokens to, especially after tool results
+                if (event.event === 'on_chat_model_start' && eventMessages.length === 0) {
+                    const placeholder: ThreadMessage = {
+                        role: 'assistant',
+                        content: [{ type: 'text', text: '' }],
+                        id: this.generateId()
+                    };
+                    // Only emit if we are adding to the known state
+                    if (lastMessages.length === lastMessageCount) {
+                        messagesToEmit = [...lastMessages, placeholder];
+                        // We don't update lastMessageCount here because this is a provisional message
+                    }
+                }
+
                 if ((isChainEnd || mightHaveToolCalls || isToolEvent) && eventMessages.length === 0) {
                     try {
                         const tuple = await this.checkpointer.getTuple({ configurable: { thread_id: threadId } });
@@ -236,8 +266,17 @@ export class Agent {
                             const checkpointMessages = this.extractMessagesFromCheckpoint(tuple);
                             // Only emit if we have new messages with tool calls or tool responses
                             const hasToolActivity = checkpointMessages.some((msg) => msg.toolCalls || msg.role === 'tool');
+
+                            // debugLog('stream.checkpoint', { 
+                            //    event: event.event, 
+                            //    ckptCount: checkpointMessages.length, 
+                            //    lastCount: lastMessageCount,
+                            //    hasToolActivity 
+                            // });
+
                             if (checkpointMessages.length > lastMessageCount && hasToolActivity) {
                                 messagesToEmit = checkpointMessages;
+                                lastMessages = checkpointMessages;
                                 lastMessageCount = checkpointMessages.length;
                             }
                         }
@@ -248,7 +287,11 @@ export class Agent {
                     // Only emit if we have more messages than before
                     if (eventMessages.length > lastMessageCount) {
                         messagesToEmit = eventMessages;
-                        lastMessageCount = eventMessages.length;
+                        // Only update state if it looks like full history (simple heuristic)
+                        if (eventMessages.length >= lastMessageCount) {
+                            lastMessages = eventMessages;
+                            lastMessageCount = eventMessages.length;
+                        }
                     }
                 }
 
