@@ -1,64 +1,61 @@
 {
-  "name": "papa-ts",
-  "version": "2.7.4",
-  "description": "Backend for your Personal Assistant, powered by Private AI (aka PAPA)",
-  "license": "AGPL-3.0-or-later",
-  "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
-  "sideEffects": false,
-  "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap",
-    "clean": "rm -rf dist",
-    "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "prepublishOnly": "yarn build",
-    "test": "vitest"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/your-papa/papa-ts.git"
-  },
-  "keywords": [
-    "agent",
-    "langchain",
-    "langgraph",
-    "privacy",
-    "electron",
-    "browser",
-    "ai",
-    "second-brain"
-  ],
-  "author": "Leonard Heininger, Nicolas Kohl",
-  "dependencies": {
-    "@langchain/anthropic": "^1.1.0",
-    "@langchain/core": "^1.0.2",
-    "@langchain/langgraph": "^1.0.1",
-    "@langchain/ollama": "^1.0.1",
-    "@langchain/openai": "^1.1.2",
-    "@langfuse/langchain": "^4.4.0",
-    "@langfuse/otel": "^4.4.2",
-    "@opentelemetry/sdk-node": "^0.208.0",
-    "@sap-ai-sdk/langchain": "^2.3.0",
-    "dotenv": "^17.2.3",
-    "langchain": "^1.0.2",
-    "langfuse": "^3.38.6",
-    "langsmith": "^0.3.79",
-    "zod": "^4.1.12"
-  },
-  "devDependencies": {
-    "@types/node": "^24.10.0",
-    "@typescript-eslint/eslint-plugin": "^8.46.3",
-    "@typescript-eslint/parser": "^8.46.3",
-    "eslint": "^9.39.1",
-    "tsup": "^8.5.0",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
-  },
-  "engines": {
-    "node": ">=20"
-  }
+	"name": "papa-ts",
+	"version": "2.7.4",
+	"description": "Backend for your Personal Assistant, powered by Private AI (aka PAPA)",
+	"license": "AGPL-3.0-or-later",
+	"type": "module",
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs",
+			"default": "./dist/index.js"
+		}
+	},
+	"files": ["dist"],
+	"sideEffects": false,
+	"scripts": {
+		"build": "tsup src/index.ts --format esm,cjs --dts --sourcemap",
+		"clean": "rm -rf dist",
+		"lint": "eslint \"src/**/*.{ts,tsx}\"",
+		"prepublishOnly": "yarn build",
+		"test": "vitest"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+ssh://git@github.com/your-papa/papa-ts.git"
+	},
+	"keywords": ["agent", "langchain", "langgraph", "privacy", "electron", "browser", "ai", "second-brain"],
+	"author": "Leonard Heininger, Nicolas Kohl",
+	"dependencies": {
+		"@langchain/anthropic": "^1.1.0",
+		"@langchain/core": "^1.0.2",
+		"@langchain/langgraph": "^1.0.1",
+		"@langchain/ollama": "^1.0.1",
+		"@langchain/openai": "^1.1.2",
+		"@langfuse/langchain": "^4.4.0",
+		"@langfuse/otel": "^4.4.2",
+		"@opentelemetry/sdk-node": "^0.208.0",
+		"@sap-ai-sdk/langchain": "^2.3.0",
+		"dotenv": "^17.2.3",
+		"langchain": "^1.0.2",
+		"langfuse": "^3.38.6",
+		"langsmith": "^0.3.79",
+		"zod": "^4.1.12"
+	},
+	"devDependencies": {
+		"@types/node": "^24.10.0",
+		"@typescript-eslint/eslint-plugin": "^8.46.3",
+		"@typescript-eslint/parser": "^8.46.3",
+		"eslint": "^9.39.1",
+		"tsup": "^8.5.0",
+		"typescript": "^5.9.3",
+		"vitest": "^3.2.4"
+	},
+	"engines": {
+		"node": ">=20"
+	}
 }
